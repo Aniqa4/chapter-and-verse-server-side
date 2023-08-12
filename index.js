@@ -38,7 +38,15 @@ async function run() {
 
 
     //Authors' Collection----------------------------------------------------------------
-    
+
+    //get all data
+    app.get("/authors", async (req, res) => {
+      const cursor = authorsCollection.find();
+      const result = await cursor.toArray();
+      res.send(result);
+    })
+
+    //get only id and names
     app.get("/names-of-authors", async (req, res) => {
       const query = {};
       const options = {
@@ -48,9 +56,34 @@ async function run() {
       const result = await cursor.toArray();
       res.send(result);
     })
-    //-------------------------------------------------------------------------------------
+    
+    //--------------------------------------------x----------------------------------------
 
 
+
+
+    //Publishers' collection---------------------------------------------------------------
+    
+    //get all data
+    app.get("/publishers", async (req, res) => {
+      const cursor = publishersCollection.find();
+      const result = await cursor.toArray();
+      res.send(result);
+    })
+
+    //get only id and names
+    app.get("/names-of-publications", async (req, res) => {
+      const query = {};
+      const options = {
+        projection: {name:1}
+      };
+      const cursor = publishersCollection.find(query,options);
+      const result = await cursor.toArray();
+      res.send(result);
+    })
+
+
+    //------------------------------------------x------------------------------------------
 
 
 
