@@ -1,6 +1,6 @@
 const express = require('express')
 const cors = require('cors');
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require('dotenv').config();
 const app = express()
 const port = process.env.PORT || 5000;
@@ -120,7 +120,7 @@ async function run() {
     app.get("/books-with-less-info", async (req, res) => {
       const query = {};
       const options = {
-        projection: { bookName: 1 , BookImage:1 , price:1 , availableCopies:1 , soldCopies: 1 }
+        projection: { bookName: 1, bookImage: 1, price: 1, availableCopies: 1, soldCopies: 1, category: 1 }
       };
       const cursor = booksCollection.find(query, options);
       const result = await cursor.toArray();
@@ -131,6 +131,31 @@ async function run() {
     app.post("/add-books", async (req, res) => {
       const newBook = req.body;
       const result = await booksCollection.insertOne(newBook);
+      res.send(result);
+    })
+
+    //update a book
+    app.put("/update-book/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const options = { upsert: true }
+      const updateBook = req.body;
+      const updatedBook = {
+        $set: {
+          bookName: updateBook.bookName,
+          bookImage: updateBook.bookImage,
+          authorName: updateBook.authorName,
+          publisherName: updateBook.publisherName,
+          price: updateBook.price,
+          category: updateBook.category,
+          dateOfArrival: updateBook.dateOfArrival,
+          availableCopies: updateBook.availableCopies,
+          soldCopies: updateBook.soldCopies,
+          description: updateBook.description
+
+        }
+      };
+      const result = await booksCollection.updateOne(filter, updatedBook, options);
       res.send(result);
     })
     //------------------------------------------x------------------------------------------
