@@ -180,6 +180,18 @@ async function run() {
       res.send(result);
     })
 
+    //get data by authors name
+    app.get("/books-by-category/:category", async (req, res) => {
+      const category = req.params.category;
+      const query = { category : category };
+      const options = {
+        projection: { bookName: 1, bookImage: 1, price: 1, availableCopies: 1, soldCopies: 1, category: 1 }
+      };
+      const cursor = booksCollection.find(query, options);
+      const result = await cursor.toArray();
+      res.send(result);
+    })
+
     //add books
     app.post("/add-books", async (req, res) => {
       const newBook = req.body;
