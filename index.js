@@ -149,6 +149,14 @@ async function run() {
       res.send(result);
     })
 
+    //get data of single book
+    app.get("/Books/:bookName", async (req, res) => {
+      const bookName = req.params.bookName;
+      const query = { bookName : bookName };
+      const result = await booksCollection.findOne(query);
+      res.send(result);
+    })
+
     //get all data with a few info
     app.get("/books-with-less-info", async (req, res) => {
       const query = {};
