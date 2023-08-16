@@ -114,6 +114,31 @@ async function run() {
       const result = await cursor.toArray();
       res.send(result);
     })
+
+    //update publisher
+    app.put("/update-publisher/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const options = { upsert: true }
+      const updatePublisher = req.body;
+      const updatedPublisher = {
+        $set: {
+          name: updatePublisher.name,
+          email: updatePublisher.email,
+          phone: updatePublisher.phone,
+          description: updatePublisher.description
+        }
+      };
+      const result = await publishersCollection.updateOne(filter, updatedPublisher, options);
+      res.send(result);
+    })
+
+    //add authors
+    app.post("/add-authors", async (req, res) => {
+      const newAuthor = req.body;
+      const result = await authorsCollection.insertOne(newAuthor);
+      res.send(result);
+    })
     //------------------------------------------x------------------------------------------
 
 
