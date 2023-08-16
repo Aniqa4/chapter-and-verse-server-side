@@ -115,6 +115,14 @@ async function run() {
       res.send(result);
     })
 
+    //get one document based on id
+    app.get("/publishers/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await publishersCollection.findOne(query);
+      res.send(result);
+    })
+
     //update publisher
     app.put("/update-publisher/:id", async (req, res) => {
       const id = req.params.id;
@@ -133,10 +141,10 @@ async function run() {
       res.send(result);
     })
 
-    //add authors
-    app.post("/add-authors", async (req, res) => {
-      const newAuthor = req.body;
-      const result = await authorsCollection.insertOne(newAuthor);
+    //add publishers
+    app.post("/add-publishers", async (req, res) => {
+      const newPublisher = req.body;
+      const result = await publishersCollection.insertOne(newPublisher);
       res.send(result);
     })
     //------------------------------------------x------------------------------------------
@@ -197,6 +205,18 @@ async function run() {
     app.get("/books-by-author/:authorName", async (req, res) => {
       const authorName = req.params.authorName;
       const query = { authorName : authorName };
+      const options = {
+        projection: { bookName: 1, bookImage: 1, price: 1, availableCopies: 1, soldCopies: 1, category: 1 }
+      };
+      const cursor = booksCollection.find(query, options);
+      const result = await cursor.toArray();
+      res.send(result);
+    })
+
+    //get data by publisher name
+    app.get("/books-by-author/:publisherName", async (req, res) => {
+      const publisherName = req.params.publisherName;
+      const query = { publisherName : publisherName };
       const options = {
         projection: { bookName: 1, bookImage: 1, price: 1, availableCopies: 1, soldCopies: 1, category: 1 }
       };
