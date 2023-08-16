@@ -57,6 +57,39 @@ async function run() {
       const result = await cursor.toArray();
       res.send(result);
     })
+
+    //get one document based on id
+    app.get("/authors/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await authorsCollection.findOne(query);
+      res.send(result);
+    })
+
+    //update author
+    app.put("/update-author/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const options = { upsert: true }
+      const updateAuthor = req.body;
+      const updatedAuthor = {
+        $set: {
+          name: updateAuthor.name,
+          email: updateAuthor.email,
+          phone: updateAuthor.phone,
+          description: updateAuthor.description
+        }
+      };
+      const result = await authorsCollection.updateOne(filter, updatedAuthor, options);
+      res.send(result);
+    })
+
+    //add authors
+    app.post("/add-authors", async (req, res) => {
+      const newAuthor = req.body;
+      const result = await authorsCollection.insertOne(newAuthor);
+      res.send(result);
+    })
     //--------------------------------------------x----------------------------------------
 
 
@@ -119,6 +152,18 @@ async function run() {
     //get all data with a few info
     app.get("/books-with-less-info", async (req, res) => {
       const query = {};
+      const options = {
+        projection: { bookName: 1, bookImage: 1, price: 1, availableCopies: 1, soldCopies: 1, category: 1 }
+      };
+      const cursor = booksCollection.find(query, options);
+      const result = await cursor.toArray();
+      res.send(result);
+    })
+    
+    //get data by authors name
+    app.get("/books-by-author/:authorName", async (req, res) => {
+      const authorName = req.params.authorName;
+      const query = { authorName : authorName };
       const options = {
         projection: { bookName: 1, bookImage: 1, price: 1, availableCopies: 1, soldCopies: 1, category: 1 }
       };
