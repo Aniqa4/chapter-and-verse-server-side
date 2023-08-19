@@ -66,6 +66,13 @@ async function run() {
       res.send(result);
     })
 
+    //add authors
+    app.post("/add-authors", async (req, res) => {
+      const newAuthor = req.body;
+      const result = await authorsCollection.insertOne(newAuthor);
+      res.send(result);
+    })
+
     //update author
     app.put("/update-author/:id", async (req, res) => {
       const id = req.params.id;
@@ -84,12 +91,14 @@ async function run() {
       res.send(result);
     })
 
-    //add authors
-    app.post("/add-authors", async (req, res) => {
-      const newAuthor = req.body;
-      const result = await authorsCollection.insertOne(newAuthor);
+    //delete author
+    app.delete('/delete-author/:id', async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await authorsCollection.deleteOne(query);
       res.send(result);
     })
+
     //--------------------------------------------x----------------------------------------
 
 
@@ -123,6 +132,13 @@ async function run() {
       res.send(result);
     })
 
+    //add publishers
+    app.post("/add-publishers", async (req, res) => {
+      const newPublisher = req.body;
+      const result = await publishersCollection.insertOne(newPublisher);
+      res.send(result);
+    })
+
     //update publisher
     app.put("/update-publisher/:id", async (req, res) => {
       const id = req.params.id;
@@ -141,10 +157,11 @@ async function run() {
       res.send(result);
     })
 
-    //add publishers
-    app.post("/add-publishers", async (req, res) => {
-      const newPublisher = req.body;
-      const result = await publishersCollection.insertOne(newPublisher);
+    //delete
+    app.delete('/delete-publisher/:id', async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await publishersCollection.deleteOne(query);
       res.send(result);
     })
     //------------------------------------------x------------------------------------------
@@ -185,7 +202,7 @@ async function run() {
     //get data of single book
     app.get("/Books/:bookName", async (req, res) => {
       const bookName = req.params.bookName;
-      const query = { bookName : bookName };
+      const query = { bookName: bookName };
       const result = await booksCollection.findOne(query);
       res.send(result);
     })
@@ -200,11 +217,11 @@ async function run() {
       const result = await cursor.toArray();
       res.send(result);
     })
-    
-    //get data by authors name
+
+    //get data of books by authors name
     app.get("/books-by-author/:authorName", async (req, res) => {
       const authorName = req.params.authorName;
-      const query = { authorName : authorName };
+      const query = { authorName: authorName };
       const options = {
         projection: { bookName: 1, bookImage: 1, price: 1, availableCopies: 1, soldCopies: 1, category: 1 }
       };
@@ -214,9 +231,9 @@ async function run() {
     })
 
     //get data by publisher name
-    app.get("/books-by-author/:publisherName", async (req, res) => {
+    app.get("/books-by-publisher/:publisherName", async (req, res) => {
       const publisherName = req.params.publisherName;
-      const query = { publisherName : publisherName };
+      const query = { publisherName: publisherName };
       const options = {
         projection: { bookName: 1, bookImage: 1, price: 1, availableCopies: 1, soldCopies: 1, category: 1 }
       };
@@ -228,7 +245,7 @@ async function run() {
     //get data by authors name
     app.get("/books-by-category/:category", async (req, res) => {
       const category = req.params.category;
-      const query = { category : category };
+      const query = { category: category };
       const options = {
         projection: { bookName: 1, bookImage: 1, price: 1, availableCopies: 1, soldCopies: 1, category: 1 }
       };
@@ -268,6 +285,16 @@ async function run() {
       const result = await booksCollection.updateOne(filter, updatedBook, options);
       res.send(result);
     })
+
+     //delete
+     app.delete('/delete-book/:id', async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await booksCollection.deleteOne(query);
+      res.send(result);
+    })
+
+    
     //------------------------------------------x------------------------------------------
 
 
