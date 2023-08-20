@@ -36,9 +36,23 @@ async function run() {
     const categoriesCollection = client.db('chapter-and-verse').collection('categories');
     //----------------------------------------x------------------------------------------
 
+    //Users Collection-------------------------------------------------------------------
+     //add users
+     app.post("/add-users", async (req, res) => {
+      const newUser = req.body;
+      const result = await usersCollection.insertOne(newUser);
+      res.send(result);
+    })
+    app.get("/users", async (req, res) => {
+      const cursor = usersCollection.find();
+      const result = await cursor.toArray();
+      res.send(result);
+    })
+
+    //----------------------------------------x------------------------------------------
 
 
-    //Authors Collection----------------------------------------------------------------
+    //Authors Collection-----------------------------------------------------------------
 
     //get all data
     app.get("/authors", async (req, res) => {
