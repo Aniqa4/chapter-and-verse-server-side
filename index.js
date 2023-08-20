@@ -49,6 +49,14 @@ async function run() {
       res.send(result);
     })
 
+    //get one document based on email
+    app.get("/users/:email", async (req, res) => {
+      const email = req.params.id;
+      const query = { email : email };
+      const result = await usersCollection.findOne(query);
+      res.send(result);
+    })
+
     //----------------------------------------x------------------------------------------
 
 
