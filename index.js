@@ -49,14 +49,6 @@ async function run() {
       res.send(result);
     })
 
-    //get one document based on email
-    app.get("/users/:email", async (req, res) => {
-      const email = req.params.email;
-      const query = { email : email };
-      const result = await usersCollection.findOne(query);
-      res.send(result);
-    })
-
     //----------------------------------------x------------------------------------------
 
 
@@ -215,14 +207,15 @@ async function run() {
     //Books collection---------------------------------------------------------------
 
     //get all data
-    app.get("/Books", async (req, res) => {
+    app.get("/books", async (req, res) => {
       const cursor = booksCollection.find();
       const result = await cursor.toArray();
       res.send(result);
     })
 
+
     //get data of single book
-    app.get("/Books/:bookName", async (req, res) => {
+    app.get("/books/:bookName", async (req, res) => {
       const bookName = req.params.bookName;
       const query = { bookName: bookName };
       const result = await booksCollection.findOne(query);
@@ -240,7 +233,31 @@ async function run() {
       res.send(result);
     })
 
-    //get data of books by authors name
+    //featured books
+    app.get("/featured-books", async (req, res) => {
+      const query = {};
+      const options = {
+        sort: {bookName:1},
+        projection: { bookName: 1, bookImage: 1, price: 1, availableCopies: 1, soldCopies: 1, category: 1 }
+      };
+      const cursor = booksCollection.find(query, options).limit(5);
+      const result = await cursor.toArray();
+      res.send(result);
+    })
+
+    //new arrivals
+    app.get("/new-arrivals", async (req, res) => {
+      const query = {};
+      const options = {
+        sort: {dateOfArrival:-1},
+        projection: { bookName: 1, bookImage: 1, price: 1, availableCopies: 1, soldCopies: 1, category: 1 }
+      };
+      const cursor = booksCollection.find(query, options).limit(5);
+      const result = await cursor.toArray();
+      res.send(result);
+    })
+
+    //get data of books by author name
     app.get("/books-by-author/:authorName", async (req, res) => {
       const authorName = req.params.authorName;
       const query = { authorName: authorName };
@@ -264,7 +281,7 @@ async function run() {
       res.send(result);
     })
 
-    //get data by authors name
+    //get data by category name
     app.get("/books-by-category/:category", async (req, res) => {
       const category = req.params.category;
       const query = { category: category };
