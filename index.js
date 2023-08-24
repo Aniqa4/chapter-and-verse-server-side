@@ -36,6 +36,7 @@ async function run() {
     const categoriesCollection = client.db('chapter-and-verse').collection('categories');
     //----------------------------------------x------------------------------------------
 
+
     //Users Collection-------------------------------------------------------------------
      //add users
      app.post("/add-users", async (req, res) => {
@@ -57,17 +58,6 @@ async function run() {
     //get all data
     app.get("/authors", async (req, res) => {
       const cursor = authorsCollection.find();
-      const result = await cursor.toArray();
-      res.send(result);
-    })
-
-    //get only id and names
-    app.get("/names-of-authors", async (req, res) => {
-      const query = {};
-      const options = {
-        projection: { name: 1 }
-      };
-      const cursor = authorsCollection.find(query, options);
       const result = await cursor.toArray();
       res.send(result);
     })
@@ -123,17 +113,6 @@ async function run() {
     //get all data
     app.get("/publishers", async (req, res) => {
       const cursor = publishersCollection.find();
-      const result = await cursor.toArray();
-      res.send(result);
-    })
-
-    //get only id and names
-    app.get("/names-of-publications", async (req, res) => {
-      const query = {};
-      const options = {
-        projection: { name: 1 }
-      };
-      const cursor = publishersCollection.find(query, options);
       const result = await cursor.toArray();
       res.send(result);
     })
@@ -238,6 +217,18 @@ async function run() {
       const query = {};
       const options = {
         sort: {bookName:1},
+        projection: { bookName: 1, bookImage: 1, price: 1, availableCopies: 1, soldCopies: 1, category: 1 }
+      };
+      const cursor = booksCollection.find(query, options).limit(5);
+      const result = await cursor.toArray();
+      res.send(result);
+    })
+
+    //best selling books books
+    app.get("/best-selling", async (req, res) => {
+      const query = {};
+      const options = {
+        sort: {soldCopies:-1},
         projection: { bookName: 1, bookImage: 1, price: 1, availableCopies: 1, soldCopies: 1, category: 1 }
       };
       const cursor = booksCollection.find(query, options).limit(5);
