@@ -38,8 +38,8 @@ async function run() {
 
 
     //Users Collection-------------------------------------------------------------------
-     //add users
-     app.post("/add-users", async (req, res) => {
+    //add users
+    app.post("/add-users", async (req, res) => {
       const newUser = req.body;
       const result = await usersCollection.insertOne(newUser);
       res.send(result);
@@ -201,11 +201,13 @@ async function run() {
       res.send(result);
     })
 
-    //get all data with a few info
-    app.get("/books-with-less-info", async (req, res) => {
-      const query = {};
+    //search books
+    app.get("/search-books/:bookName", async (req, res) => {
+      const name = req.params.bookName;
+      const query = { bookName: { $regex: new RegExp(name, 'i') } }
       const options = {
-        projection: { bookName: 1, bookImage: 1, price: 1, availableCopies: 1, soldCopies: 1, category: 1 }
+        sort: { bookName: 1 },
+        projection: { bookName: 1 }
       };
       const cursor = booksCollection.find(query, options);
       const result = await cursor.toArray();
@@ -216,7 +218,7 @@ async function run() {
     app.get("/featured-books", async (req, res) => {
       const query = {};
       const options = {
-        sort: {bookName:1},
+        sort: { bookName: 1 },
         projection: { bookName: 1, bookImage: 1, price: 1, availableCopies: 1, soldCopies: 1, category: 1 }
       };
       const cursor = booksCollection.find(query, options).limit(5);
@@ -228,7 +230,7 @@ async function run() {
     app.get("/best-selling", async (req, res) => {
       const query = {};
       const options = {
-        sort: {soldCopies:-1},
+        sort: { soldCopies: -1 },
         projection: { bookName: 1, bookImage: 1, price: 1, availableCopies: 1, soldCopies: 1, category: 1 }
       };
       const cursor = booksCollection.find(query, options).limit(5);
@@ -240,7 +242,7 @@ async function run() {
     app.get("/new-arrivals", async (req, res) => {
       const query = {};
       const options = {
-        sort: {dateOfArrival:-1},
+        sort: { dateOfArrival: -1 },
         projection: { bookName: 1, bookImage: 1, price: 1, availableCopies: 1, soldCopies: 1, category: 1 }
       };
       const cursor = booksCollection.find(query, options).limit(5);
@@ -308,6 +310,7 @@ async function run() {
           dateOfArrival: updateBook.dateOfArrival,
           availableCopies: updateBook.availableCopies,
           soldCopies: updateBook.soldCopies,
+          numberOfPages: updateBook.numberOfPages,
           description: updateBook.description
 
         }
@@ -316,15 +319,15 @@ async function run() {
       res.send(result);
     })
 
-     //delete
-     app.delete('/delete-book/:id', async (req, res) => {
+    //delete
+    app.delete('/delete-book/:id', async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await booksCollection.deleteOne(query);
       res.send(result);
     })
 
-    
+
     //------------------------------------------x------------------------------------------
 
 
