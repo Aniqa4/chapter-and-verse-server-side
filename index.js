@@ -8,7 +8,7 @@ const booksRouter= require('./routes/books')
 const app = express()
 const port = process.env.PORT || 5000;
 
-//malwares
+//middlewares
 app.use(cors());
 app.use(express.json());
 

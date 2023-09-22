@@ -78,7 +78,7 @@ router.get('/home/featured-books', async (req, res) => {
     res.send(result);
   })
 
-  //featured books
+  //featured books----x
   router.get("/featured-books", async (req, res) => {
     const query = {};
     const options = {
