@@ -3,7 +3,6 @@ const cors = require('cors');
 require('dotenv').config();
 
 const {connectMongoDB}=require('./connectDB');
-const booksRouter= require('./routes/books')
 
 const app = express()
 const port = process.env.PORT || 5000;
@@ -15,8 +14,13 @@ app.use(express.json());
 //connection to mongoDb
 connectMongoDB(`mongodb+srv://${process.env.MongoDB_USER}:${process.env.MongoDB_PASS}@cluster0.l5sbbgb.mongodb.net/chapter-and-verse?retryWrites=true&w=majority`)
 
+// Routes
+app.use(require("./routes/users.routes"));
+app.use(require("./routes/authors.routes"));
+app.use(require("./routes/publishers.routes"));
+app.use(require("./routes/categories.routes"));
+app.use(require("./routes/books.routes"));
 
-app.use('/books', booksRouter)
 
 app.get('/', (req, res) => {
   res.send('Hello World!')
