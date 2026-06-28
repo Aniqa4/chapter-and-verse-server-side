@@ -24,7 +24,7 @@ exports.getAuthor = async (req, res) => {
 exports.addAuthor = async (req, res) => {
   try {
     const result = await Author.create(req.body);
-    res.send(result);
+    res.status(201).send({ success: true, message: 'Author added successfully.', data: result });
   } catch (error) {
     res.status(500).send(error);
   }
@@ -38,7 +38,7 @@ exports.updateAuthor = async (req, res) => {
       req.body,
       { new: true, upsert: true }
     );
-    res.send(result);
+    res.send({ success: true, message: 'Author updated successfully.', data: result });
   } catch (error) {
     res.status(500).send(error);
   }
@@ -48,7 +48,8 @@ exports.updateAuthor = async (req, res) => {
 exports.deleteAuthor = async (req, res) => {
   try {
     const result = await Author.findByIdAndDelete(req.params.id);
-    res.send(result);
+    if (!result) return res.status(404).send({ success: false, message: 'Author not found.' });
+    res.send({ success: true, message: 'Author deleted successfully.' });
   } catch (error) {
     res.status(500).send(error);
   }

@@ -28,7 +28,7 @@ exports.placeOrder = async (req, res) => {
       totalAmount,
     });
 
-    res.status(201).send(order);
+    res.status(201).send({ success: true, message: 'Order placed successfully.', data: order });
   } catch (error) {
     res.status(500).send(error);
   }
@@ -65,8 +65,8 @@ exports.updateOrderStatus = async (req, res) => {
       { orderStatus },
       { new: true }
     );
-    if (!result) return res.status(404).send({ message: 'Order not found.' });
-    res.send(result);
+    if (!result) return res.status(404).send({ success: false, message: 'Order not found.' });
+    res.send({ success: true, message: 'Order status updated successfully.', data: result });
   } catch (error) {
     res.status(500).send(error);
   }
@@ -81,8 +81,8 @@ exports.updatePaymentStatus = async (req, res) => {
       { paymentStatus },
       { new: true }
     );
-    if (!result) return res.status(404).send({ message: 'Order not found.' });
-    res.send(result);
+    if (!result) return res.status(404).send({ success: false, message: 'Order not found.' });
+    res.send({ success: true, message: 'Payment status updated successfully.', data: result });
   } catch (error) {
     res.status(500).send(error);
   }

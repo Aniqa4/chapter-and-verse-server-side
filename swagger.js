@@ -19,6 +19,32 @@ const swaggerSpec = {
       },
     },
     schemas: {
+      // ─── Reusable response shapes ───────────────────────────────────────────
+      SuccessMessage: {
+        type: 'object',
+        properties: {
+          success: { type: 'boolean', example: true },
+          message: { type: 'string', example: 'Operation successful.' },
+        },
+      },
+      ErrorResponse: {
+        type: 'object',
+        properties: {
+          success: { type: 'boolean', example: false },
+          message: { type: 'string', example: 'Something went wrong.' },
+        },
+      },
+      AuthResponse: {
+        type: 'object',
+        properties: {
+          success: { type: 'boolean', example: true },
+          message: { type: 'string', example: 'Login successful.' },
+          token: { type: 'string', example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...' },
+          user: { $ref: '#/components/schemas/User' },
+        },
+      },
+
+      // ─── Data models ────────────────────────────────────────────────────────
       User: {
         type: 'object',
         properties: {
@@ -28,6 +54,7 @@ const swaggerSpec = {
           phoneNumber: { type: 'string', example: '01700000000' },
           address: { type: 'string', example: 'Dhaka' },
           role: { type: 'string', enum: ['user', 'admin'], example: 'user' },
+          provider: { type: 'string', enum: ['local', 'google'], example: 'local' },
           isVerified: { type: 'boolean', example: true },
           createdAt: { type: 'string', format: 'date-time' },
         },
@@ -37,7 +64,7 @@ const swaggerSpec = {
         properties: {
           _id: { type: 'string', example: '64b1f2c3d4e5f6a7b8c9d0e1' },
           bookName: { type: 'string', example: 'The Alchemist' },
-          bookImage: { type: 'string', example: 'https://example.com/alchemist.jpg' },
+          bookImage: { type: 'string', example: 'https://res.cloudinary.com/demo/image/upload/alchemist.jpg' },
           authorName: { type: 'string', example: 'Paulo Coelho' },
           publisherName: { type: 'string', example: 'HarperCollins' },
           price: { type: 'number', example: 15.99 },
@@ -45,23 +72,6 @@ const swaggerSpec = {
           dateOfArrival: { type: 'string', format: 'date', example: '2024-01-15' },
           availableCopies: { type: 'integer', example: 50 },
           soldCopies: { type: 'integer', example: 120 },
-          description: { type: 'string', example: 'A novel about following your dreams.' },
-          numberOfPages: { type: 'integer', example: 208 },
-        },
-      },
-      BookInput: {
-        type: 'object',
-        required: ['bookName', 'bookImage', 'authorName', 'publisherName', 'price', 'category', 'dateOfArrival', 'availableCopies', 'soldCopies', 'description', 'numberOfPages'],
-        properties: {
-          bookName: { type: 'string', example: 'The Alchemist' },
-          bookImage: { type: 'string', example: 'https://example.com/alchemist.jpg' },
-          authorName: { type: 'string', example: 'Paulo Coelho' },
-          publisherName: { type: 'string', example: 'HarperCollins' },
-          price: { type: 'number', example: 15.99 },
-          category: { type: 'string', example: 'Fiction' },
-          dateOfArrival: { type: 'string', format: 'date', example: '2024-01-15' },
-          availableCopies: { type: 'integer', example: 50 },
-          soldCopies: { type: 'integer', example: 0 },
           description: { type: 'string', example: 'A novel about following your dreams.' },
           numberOfPages: { type: 'integer', example: 208 },
         },
@@ -119,7 +129,7 @@ const swaggerSpec = {
         type: 'object',
         properties: {
           _id: { type: 'string', example: '64b1f2c3d4e5f6a7b8c9d0e1' },
-          userId: { type: 'string', example: '64b1f2c3d4e5f6a7b8c9d0e2' },
+          userId: { type: 'string', nullable: true, example: '64b1f2c3d4e5f6a7b8c9d0e2' },
           books: {
             type: 'array',
             items: {
@@ -138,17 +148,11 @@ const swaggerSpec = {
           createdAt: { type: 'string', format: 'date-time' },
         },
       },
-      Error: {
-        type: 'object',
-        properties: {
-          message: { type: 'string', example: 'Something went wrong.' },
-        },
-      },
     },
   },
   tags: [
     { name: 'Auth', description: 'Registration, login, and email verification' },
-    { name: 'Users', description: 'User management (admin only)' },
+    { name: 'Users', description: 'User management' },
     { name: 'Books', description: 'Book catalog and management' },
     { name: 'Authors', description: 'Author management' },
     { name: 'Publishers', description: 'Publisher management' },
@@ -156,7 +160,7 @@ const swaggerSpec = {
     { name: 'Orders', description: 'Order placement and management' },
   ],
   paths: {
-    // ─── Auth ──────────────────────────────────────────────────────────────
+    // ─── Auth ──────────────────────────────────────────────────────────────────
     '/register': {
       post: {
         tags: ['Auth'],
@@ -180,60 +184,8 @@ const swaggerSpec = {
           },
         },
         responses: {
-          201: { description: 'Registered successfully. Verification email sent.' },
-          409: { description: 'Email already registered.', content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } } },
-          500: { description: 'Server error.' },
-        },
-      },
-    },
-    '/login': {
-      post: {
-        tags: ['Auth'],
-        summary: 'Login and receive a JWT token',
-        requestBody: {
-          required: true,
-          content: {
-            'application/json': {
-              schema: {
-                type: 'object',
-                required: ['email', 'password'],
-                properties: {
-                  email: { type: 'string', example: 'aniqa@example.com' },
-                  password: { type: 'string', example: 'securepassword123' },
-                },
-              },
-            },
-          },
-        },
-        responses: {
-          200: {
-            description: 'Login successful.',
-            content: {
-              'application/json': {
-                schema: {
-                  type: 'object',
-                  properties: {
-                    token: { type: 'string', example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...' },
-                    user: { $ref: '#/components/schemas/User' },
-                  },
-                },
-              },
-            },
-          },
-          401: { description: 'Invalid email or password.' },
-          403: { description: 'Email not verified.' },
-          500: { description: 'Server error.' },
-        },
-      },
-    },
-    '/verify-email/{token}': {
-      get: {
-        tags: ['Auth'],
-        summary: 'Verify email using the token sent to inbox',
-        parameters: [{ in: 'path', name: 'token', required: true, schema: { type: 'string' } }],
-        responses: {
-          200: { description: 'Email verified successfully.' },
-          400: { description: 'Invalid or expired token.' },
+          201: { description: 'Registered successfully. Verification email sent.', content: { 'application/json': { schema: { $ref: '#/components/schemas/SuccessMessage' } } } },
+          409: { description: 'Email already registered.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
           500: { description: 'Server error.' },
         },
       },
@@ -257,9 +209,48 @@ const swaggerSpec = {
           },
         },
         responses: {
-          200: { description: 'Verification email resent.' },
-          400: { description: 'Account is already verified.' },
-          404: { description: 'No account found with this email.' },
+          200: { description: 'Verification email resent.', content: { 'application/json': { schema: { $ref: '#/components/schemas/SuccessMessage' } } } },
+          400: { description: 'Account already verified.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+          404: { description: 'No account found with this email.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+          500: { description: 'Server error.' },
+        },
+      },
+    },
+    '/verify-email/{token}': {
+      get: {
+        tags: ['Auth'],
+        summary: 'Verify email using the token sent to inbox',
+        parameters: [{ in: 'path', name: 'token', required: true, schema: { type: 'string' } }],
+        responses: {
+          200: { description: 'Email verified successfully.', content: { 'application/json': { schema: { $ref: '#/components/schemas/SuccessMessage' } } } },
+          400: { description: 'Invalid or expired token.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+          500: { description: 'Server error.' },
+        },
+      },
+    },
+    '/login': {
+      post: {
+        tags: ['Auth'],
+        summary: 'Login with email and password',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['email', 'password'],
+                properties: {
+                  email: { type: 'string', example: 'aniqa@example.com' },
+                  password: { type: 'string', example: 'securepassword123' },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: { description: 'Login successful.', content: { 'application/json': { schema: { $ref: '#/components/schemas/AuthResponse' } } } },
+          401: { description: 'Invalid email or password.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+          403: { description: 'Email not verified or Google-only account.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
           500: { description: 'Server error.' },
         },
       },
@@ -283,22 +274,9 @@ const swaggerSpec = {
           },
         },
         responses: {
-          200: {
-            description: 'Signed in successfully.',
-            content: {
-              'application/json': {
-                schema: {
-                  type: 'object',
-                  properties: {
-                    token: { type: 'string', example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...' },
-                    user: { $ref: '#/components/schemas/User' },
-                  },
-                },
-              },
-            },
-          },
-          401: { description: 'Invalid Google token.' },
-          409: { description: 'Email already registered with credentials.' },
+          200: { description: 'Google sign-in successful.', content: { 'application/json': { schema: { $ref: '#/components/schemas/AuthResponse' } } } },
+          401: { description: 'Invalid Google token.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+          409: { description: 'Email already registered with credentials.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
         },
       },
     },
@@ -308,8 +286,8 @@ const swaggerSpec = {
         summary: 'Logout and invalidate the current token',
         security: [{ BearerAuth: [] }],
         responses: {
-          200: { description: 'Logged out successfully.' },
-          401: { description: 'Unauthorized.' },
+          200: { description: 'Logged out successfully.', content: { 'application/json': { schema: { $ref: '#/components/schemas/SuccessMessage' } } } },
+          401: { description: 'Unauthorized.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
         },
       },
     },
@@ -319,26 +297,13 @@ const swaggerSpec = {
         summary: 'Silent login — verify stored token and receive a fresh one',
         security: [{ BearerAuth: [] }],
         responses: {
-          200: {
-            description: 'Token refreshed.',
-            content: {
-              'application/json': {
-                schema: {
-                  type: 'object',
-                  properties: {
-                    token: { type: 'string', example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...' },
-                    user: { $ref: '#/components/schemas/User' },
-                  },
-                },
-              },
-            },
-          },
-          401: { description: 'Token expired or invalid.' },
+          200: { description: 'Token refreshed.', content: { 'application/json': { schema: { $ref: '#/components/schemas/AuthResponse' } } } },
+          401: { description: 'Token expired or invalid.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
         },
       },
     },
 
-    // ─── Users ─────────────────────────────────────────────────────────────
+    // ─── Users ─────────────────────────────────────────────────────────────────
     '/me': {
       get: {
         tags: ['Users'],
@@ -346,8 +311,8 @@ const swaggerSpec = {
         security: [{ BearerAuth: [] }],
         responses: {
           200: { description: 'Current user.', content: { 'application/json': { schema: { $ref: '#/components/schemas/User' } } } },
-          401: { description: 'Unauthorized.' },
-          404: { description: 'User not found.' },
+          401: { description: 'Unauthorized.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+          404: { description: 'User not found.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
         },
       },
     },
@@ -357,12 +322,9 @@ const swaggerSpec = {
         summary: 'Get all users (admin only)',
         security: [{ BearerAuth: [] }],
         responses: {
-          200: {
-            description: 'List of all users.',
-            content: { 'application/json': { schema: { type: 'array', items: { $ref: '#/components/schemas/User' } } } },
-          },
-          401: { description: 'No token provided.' },
-          403: { description: 'Admin access required.' },
+          200: { description: 'List of all users.', content: { 'application/json': { schema: { type: 'array', items: { $ref: '#/components/schemas/User' } } } } },
+          401: { description: 'Unauthorized.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+          403: { description: 'Admin access required.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
         },
       },
     },
@@ -373,10 +335,13 @@ const swaggerSpec = {
         security: [{ BearerAuth: [] }],
         parameters: [{ in: 'path', name: 'id', required: true, schema: { type: 'string' } }],
         responses: {
-          200: { description: 'User is now an admin.', content: { 'application/json': { schema: { $ref: '#/components/schemas/User' } } } },
-          401: { description: 'Unauthorized.' },
-          403: { description: 'Admin access required.' },
-          404: { description: 'User not found.' },
+          200: {
+            description: 'User is now an admin.',
+            content: { 'application/json': { schema: { type: 'object', properties: { success: { type: 'boolean', example: true }, message: { type: 'string', example: 'User is now an admin.' }, data: { $ref: '#/components/schemas/User' } } } } },
+          },
+          401: { description: 'Unauthorized.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+          403: { description: 'Admin access required.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+          404: { description: 'User not found.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
         },
       },
     },
@@ -387,15 +352,18 @@ const swaggerSpec = {
         security: [{ BearerAuth: [] }],
         parameters: [{ in: 'path', name: 'id', required: true, schema: { type: 'string' } }],
         responses: {
-          200: { description: 'Admin role removed.', content: { 'application/json': { schema: { $ref: '#/components/schemas/User' } } } },
-          401: { description: 'Unauthorized.' },
-          403: { description: 'Admin access required.' },
-          404: { description: 'User not found.' },
+          200: {
+            description: 'Admin role removed.',
+            content: { 'application/json': { schema: { type: 'object', properties: { success: { type: 'boolean', example: true }, message: { type: 'string', example: 'Admin role removed successfully.' }, data: { $ref: '#/components/schemas/User' } } } } },
+          },
+          401: { description: 'Unauthorized.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+          403: { description: 'Admin access required.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+          404: { description: 'User not found.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
         },
       },
     },
 
-    // ─── Books ─────────────────────────────────────────────────────────────
+    // ─── Books ─────────────────────────────────────────────────────────────────
     '/books': {
       get: {
         tags: ['Books'],
@@ -449,7 +417,7 @@ const swaggerSpec = {
         parameters: [{ in: 'path', name: 'id', required: true, schema: { type: 'string' }, example: '64b1f2c3d4e5f6a7b8c9d0e1' }],
         responses: {
           200: { description: 'Book details.', content: { 'application/json': { schema: { $ref: '#/components/schemas/Book' } } } },
-          404: { description: 'Book not found.' },
+          404: { description: 'Book not found.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
         },
       },
     },
@@ -460,7 +428,7 @@ const swaggerSpec = {
         parameters: [{ in: 'path', name: 'id', required: true, schema: { type: 'string' }, example: '64b1f2c3d4e5f6a7b8c9d0e1' }],
         responses: {
           200: { description: 'Books by author.', content: { 'application/json': { schema: { type: 'array', items: { $ref: '#/components/schemas/Book' } } } } },
-          404: { description: 'Author not found.' },
+          404: { description: 'Author not found.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
         },
       },
     },
@@ -471,7 +439,7 @@ const swaggerSpec = {
         parameters: [{ in: 'path', name: 'id', required: true, schema: { type: 'string' }, example: '64b1f2c3d4e5f6a7b8c9d0e1' }],
         responses: {
           200: { description: 'Books by publisher.', content: { 'application/json': { schema: { type: 'array', items: { $ref: '#/components/schemas/Book' } } } } },
-          404: { description: 'Publisher not found.' },
+          404: { description: 'Publisher not found.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
         },
       },
     },
@@ -482,7 +450,7 @@ const swaggerSpec = {
         parameters: [{ in: 'path', name: 'id', required: true, schema: { type: 'string' }, example: '64b1f2c3d4e5f6a7b8c9d0e1' }],
         responses: {
           200: { description: 'Books by category.', content: { 'application/json': { schema: { type: 'array', items: { $ref: '#/components/schemas/Book' } } } } },
-          404: { description: 'Category not found.' },
+          404: { description: 'Category not found.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
         },
       },
     },
@@ -516,9 +484,12 @@ const swaggerSpec = {
           },
         },
         responses: {
-          200: { description: 'Book added.', content: { 'application/json': { schema: { $ref: '#/components/schemas/Book' } } } },
-          401: { description: 'Unauthorized.' },
-          403: { description: 'Admin access required.' },
+          201: {
+            description: 'Book added successfully.',
+            content: { 'application/json': { schema: { type: 'object', properties: { success: { type: 'boolean', example: true }, message: { type: 'string', example: 'Book added successfully.' }, data: { $ref: '#/components/schemas/Book' } } } } },
+          },
+          401: { description: 'Unauthorized.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+          403: { description: 'Admin access required.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
         },
       },
     },
@@ -552,9 +523,12 @@ const swaggerSpec = {
           },
         },
         responses: {
-          200: { description: 'Book updated.', content: { 'application/json': { schema: { $ref: '#/components/schemas/Book' } } } },
-          401: { description: 'Unauthorized.' },
-          403: { description: 'Admin access required.' },
+          200: {
+            description: 'Book updated successfully.',
+            content: { 'application/json': { schema: { type: 'object', properties: { success: { type: 'boolean', example: true }, message: { type: 'string', example: 'Book updated successfully.' }, data: { $ref: '#/components/schemas/Book' } } } } },
+          },
+          401: { description: 'Unauthorized.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+          403: { description: 'Admin access required.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
         },
       },
     },
@@ -565,14 +539,15 @@ const swaggerSpec = {
         security: [{ BearerAuth: [] }],
         parameters: [{ in: 'path', name: 'id', required: true, schema: { type: 'string' } }],
         responses: {
-          200: { description: 'Book deleted.' },
-          401: { description: 'Unauthorized.' },
-          403: { description: 'Admin access required.' },
+          200: { description: 'Book deleted successfully.', content: { 'application/json': { schema: { $ref: '#/components/schemas/SuccessMessage' } } } },
+          401: { description: 'Unauthorized.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+          403: { description: 'Admin access required.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+          404: { description: 'Book not found.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
         },
       },
     },
 
-    // ─── Authors ────────────────────────────────────────────────────────────
+    // ─── Authors ───────────────────────────────────────────────────────────────
     '/authors': {
       get: {
         tags: ['Authors'],
@@ -589,7 +564,7 @@ const swaggerSpec = {
         parameters: [{ in: 'path', name: 'id', required: true, schema: { type: 'string' } }],
         responses: {
           200: { description: 'Author details.', content: { 'application/json': { schema: { $ref: '#/components/schemas/Author' } } } },
-          404: { description: 'Author not found.' },
+          404: { description: 'Author not found.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
         },
       },
     },
@@ -603,9 +578,12 @@ const swaggerSpec = {
           content: { 'application/json': { schema: { $ref: '#/components/schemas/AuthorInput' } } },
         },
         responses: {
-          200: { description: 'Author added.', content: { 'application/json': { schema: { $ref: '#/components/schemas/Author' } } } },
-          401: { description: 'Unauthorized.' },
-          403: { description: 'Admin access required.' },
+          201: {
+            description: 'Author added successfully.',
+            content: { 'application/json': { schema: { type: 'object', properties: { success: { type: 'boolean', example: true }, message: { type: 'string', example: 'Author added successfully.' }, data: { $ref: '#/components/schemas/Author' } } } } },
+          },
+          401: { description: 'Unauthorized.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+          403: { description: 'Admin access required.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
         },
       },
     },
@@ -620,9 +598,12 @@ const swaggerSpec = {
           content: { 'application/json': { schema: { $ref: '#/components/schemas/AuthorInput' } } },
         },
         responses: {
-          200: { description: 'Author updated.', content: { 'application/json': { schema: { $ref: '#/components/schemas/Author' } } } },
-          401: { description: 'Unauthorized.' },
-          403: { description: 'Admin access required.' },
+          200: {
+            description: 'Author updated successfully.',
+            content: { 'application/json': { schema: { type: 'object', properties: { success: { type: 'boolean', example: true }, message: { type: 'string', example: 'Author updated successfully.' }, data: { $ref: '#/components/schemas/Author' } } } } },
+          },
+          401: { description: 'Unauthorized.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+          403: { description: 'Admin access required.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
         },
       },
     },
@@ -633,14 +614,15 @@ const swaggerSpec = {
         security: [{ BearerAuth: [] }],
         parameters: [{ in: 'path', name: 'id', required: true, schema: { type: 'string' } }],
         responses: {
-          200: { description: 'Author deleted.' },
-          401: { description: 'Unauthorized.' },
-          403: { description: 'Admin access required.' },
+          200: { description: 'Author deleted successfully.', content: { 'application/json': { schema: { $ref: '#/components/schemas/SuccessMessage' } } } },
+          401: { description: 'Unauthorized.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+          403: { description: 'Admin access required.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+          404: { description: 'Author not found.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
         },
       },
     },
 
-    // ─── Publishers ─────────────────────────────────────────────────────────
+    // ─── Publishers ────────────────────────────────────────────────────────────
     '/publishers': {
       get: {
         tags: ['Publishers'],
@@ -657,7 +639,7 @@ const swaggerSpec = {
         parameters: [{ in: 'path', name: 'id', required: true, schema: { type: 'string' } }],
         responses: {
           200: { description: 'Publisher details.', content: { 'application/json': { schema: { $ref: '#/components/schemas/Publisher' } } } },
-          404: { description: 'Publisher not found.' },
+          404: { description: 'Publisher not found.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
         },
       },
     },
@@ -671,9 +653,12 @@ const swaggerSpec = {
           content: { 'application/json': { schema: { $ref: '#/components/schemas/PublisherInput' } } },
         },
         responses: {
-          200: { description: 'Publisher added.', content: { 'application/json': { schema: { $ref: '#/components/schemas/Publisher' } } } },
-          401: { description: 'Unauthorized.' },
-          403: { description: 'Admin access required.' },
+          201: {
+            description: 'Publisher added successfully.',
+            content: { 'application/json': { schema: { type: 'object', properties: { success: { type: 'boolean', example: true }, message: { type: 'string', example: 'Publisher added successfully.' }, data: { $ref: '#/components/schemas/Publisher' } } } } },
+          },
+          401: { description: 'Unauthorized.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+          403: { description: 'Admin access required.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
         },
       },
     },
@@ -688,9 +673,12 @@ const swaggerSpec = {
           content: { 'application/json': { schema: { $ref: '#/components/schemas/PublisherInput' } } },
         },
         responses: {
-          200: { description: 'Publisher updated.', content: { 'application/json': { schema: { $ref: '#/components/schemas/Publisher' } } } },
-          401: { description: 'Unauthorized.' },
-          403: { description: 'Admin access required.' },
+          200: {
+            description: 'Publisher updated successfully.',
+            content: { 'application/json': { schema: { type: 'object', properties: { success: { type: 'boolean', example: true }, message: { type: 'string', example: 'Publisher updated successfully.' }, data: { $ref: '#/components/schemas/Publisher' } } } } },
+          },
+          401: { description: 'Unauthorized.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+          403: { description: 'Admin access required.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
         },
       },
     },
@@ -701,14 +689,15 @@ const swaggerSpec = {
         security: [{ BearerAuth: [] }],
         parameters: [{ in: 'path', name: 'id', required: true, schema: { type: 'string' } }],
         responses: {
-          200: { description: 'Publisher deleted.' },
-          401: { description: 'Unauthorized.' },
-          403: { description: 'Admin access required.' },
+          200: { description: 'Publisher deleted successfully.', content: { 'application/json': { schema: { $ref: '#/components/schemas/SuccessMessage' } } } },
+          401: { description: 'Unauthorized.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+          403: { description: 'Admin access required.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+          404: { description: 'Publisher not found.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
         },
       },
     },
 
-    // ─── Categories ─────────────────────────────────────────────────────────
+    // ─── Categories ────────────────────────────────────────────────────────────
     '/categories': {
       get: {
         tags: ['Categories'],
@@ -744,7 +733,7 @@ const swaggerSpec = {
       },
     },
 
-    // ─── Orders ─────────────────────────────────────────────────────────────
+    // ─── Orders ────────────────────────────────────────────────────────────────
     '/place-order': {
       post: {
         tags: ['Orders'],
@@ -774,9 +763,11 @@ const swaggerSpec = {
           },
         },
         responses: {
-          201: { description: 'Order placed.', content: { 'application/json': { schema: { $ref: '#/components/schemas/Order' } } } },
-          401: { description: 'Unauthorized.' },
-          404: { description: 'Book not found.' },
+          201: {
+            description: 'Order placed successfully.',
+            content: { 'application/json': { schema: { type: 'object', properties: { success: { type: 'boolean', example: true }, message: { type: 'string', example: 'Order placed successfully.' }, data: { $ref: '#/components/schemas/Order' } } } } },
+          },
+          404: { description: 'Book not found.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
         },
       },
     },
@@ -787,7 +778,7 @@ const swaggerSpec = {
         security: [{ BearerAuth: [] }],
         responses: {
           200: { description: "User's orders.", content: { 'application/json': { schema: { type: 'array', items: { $ref: '#/components/schemas/Order' } } } } },
-          401: { description: 'Unauthorized.' },
+          401: { description: 'Unauthorized.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
         },
       },
     },
@@ -798,8 +789,8 @@ const swaggerSpec = {
         security: [{ BearerAuth: [] }],
         responses: {
           200: { description: 'All orders.', content: { 'application/json': { schema: { type: 'array', items: { $ref: '#/components/schemas/Order' } } } } },
-          401: { description: 'Unauthorized.' },
-          403: { description: 'Admin access required.' },
+          401: { description: 'Unauthorized.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+          403: { description: 'Admin access required.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
         },
       },
     },
@@ -824,10 +815,13 @@ const swaggerSpec = {
           },
         },
         responses: {
-          200: { description: 'Order status updated.', content: { 'application/json': { schema: { $ref: '#/components/schemas/Order' } } } },
-          401: { description: 'Unauthorized.' },
-          403: { description: 'Admin access required.' },
-          404: { description: 'Order not found.' },
+          200: {
+            description: 'Order status updated successfully.',
+            content: { 'application/json': { schema: { type: 'object', properties: { success: { type: 'boolean', example: true }, message: { type: 'string', example: 'Order status updated successfully.' }, data: { $ref: '#/components/schemas/Order' } } } } },
+          },
+          401: { description: 'Unauthorized.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+          403: { description: 'Admin access required.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+          404: { description: 'Order not found.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
         },
       },
     },
@@ -852,10 +846,13 @@ const swaggerSpec = {
           },
         },
         responses: {
-          200: { description: 'Payment status updated.', content: { 'application/json': { schema: { $ref: '#/components/schemas/Order' } } } },
-          401: { description: 'Unauthorized.' },
-          403: { description: 'Admin access required.' },
-          404: { description: 'Order not found.' },
+          200: {
+            description: 'Payment status updated successfully.',
+            content: { 'application/json': { schema: { type: 'object', properties: { success: { type: 'boolean', example: true }, message: { type: 'string', example: 'Payment status updated successfully.' }, data: { $ref: '#/components/schemas/Order' } } } } },
+          },
+          401: { description: 'Unauthorized.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+          403: { description: 'Admin access required.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+          404: { description: 'Order not found.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
         },
       },
     },

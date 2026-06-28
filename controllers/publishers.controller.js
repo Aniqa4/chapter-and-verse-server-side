@@ -24,7 +24,7 @@ exports.getPublisher = async (req, res) => {
 exports.addPublisher = async (req, res) => {
   try {
     const result = await Publisher.create(req.body);
-    res.send(result);
+    res.status(201).send({ success: true, message: 'Publisher added successfully.', data: result });
   } catch (error) {
     res.status(500).send(error);
   }
@@ -38,7 +38,7 @@ exports.updatePublisher = async (req, res) => {
       req.body,
       { new: true, upsert: true }
     );
-    res.send(result);
+    res.send({ success: true, message: 'Publisher updated successfully.', data: result });
   } catch (error) {
     res.status(500).send(error);
   }
@@ -48,7 +48,8 @@ exports.updatePublisher = async (req, res) => {
 exports.deletePublisher = async (req, res) => {
   try {
     const result = await Publisher.findByIdAndDelete(req.params.id);
-    res.send(result);
+    if (!result) return res.status(404).send({ success: false, message: 'Publisher not found.' });
+    res.send({ success: true, message: 'Publisher deleted successfully.' });
   } catch (error) {
     res.status(500).send(error);
   }

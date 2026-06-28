@@ -154,7 +154,7 @@ exports.addBook = async (req, res) => {
     }
 
     const result = await Book.create({ ...req.body, bookImage });
-    res.send(result);
+    res.status(201).send({ success: true, message: 'Book added successfully.', data: result });
   } catch (error) {
     res.status(500).send(error);
   }
@@ -175,7 +175,7 @@ exports.updateBook = async (req, res) => {
       { new: true, upsert: true }
     );
 
-    res.send(result);
+    res.send({ success: true, message: 'Book updated successfully.', data: result });
   } catch (error) {
     res.status(500).send(error);
   }
@@ -185,7 +185,8 @@ exports.updateBook = async (req, res) => {
 exports.deleteBook = async (req, res) => {
   try {
     const result = await Book.findByIdAndDelete(req.params.id);
-    res.send(result);
+    if (!result) return res.status(404).send({ success: false, message: 'Book not found.' });
+    res.send({ success: true, message: 'Book deleted successfully.' });
   } catch (error) {
     res.status(500).send(error);
   }

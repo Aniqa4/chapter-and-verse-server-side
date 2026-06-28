@@ -29,7 +29,7 @@ exports.register = async (req, res) => {
     const { name, email, password, phoneNumber, address } = req.body;
 
     const existing = await User.findOne({ email });
-    if (existing) return res.status(409).send({ message: 'Email is already registered.' });
+    if (existing) return res.status(409).send({ success: false, message: 'Email is already registered.' });
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const verificationToken = crypto.randomBytes(32).toString('hex');
@@ -48,7 +48,7 @@ exports.register = async (req, res) => {
 
     await sendVerificationEmail(email, verificationToken);
 
-    res.status(201).send({ message: 'Registration successful. Please check your email to verify your account.' });
+    res.status(201).send({ success: true, message: 'Registration successful. Please check your email to verify your account.' });
   } catch (error) {
     res.status(500).send(error);
   }
@@ -60,8 +60,8 @@ exports.resendVerification = async (req, res) => {
     const { email } = req.body;
 
     const user = await User.findOne({ email });
-    if (!user) return res.status(404).send({ message: 'No account found with this email.' });
-    if (user.isVerified) return res.status(400).send({ message: 'This account is already verified.' });
+    if (!user) return res.status(404).send({ success: false, message: 'No account found with this email.' });
+    if (user.isVerified) return res.status(400).send({ success: false, message: 'This account is already verified.' });
 
     user.verificationToken = crypto.randomBytes(32).toString('hex');
     user.verificationTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
@@ -69,7 +69,7 @@ exports.resendVerification = async (req, res) => {
 
     await sendVerificationEmail(email, user.verificationToken);
 
-    res.send({ message: 'Verification email resent. Please check your inbox.' });
+    res.send({ success: true, message: 'Verification email resent. Please check your inbox.' });
   } catch (error) {
     res.status(500).send(error);
   }
@@ -83,14 +83,14 @@ exports.verifyEmail = async (req, res) => {
       verificationTokenExpiry: { $gt: new Date() },
     });
 
-    if (!user) return res.status(400).send({ message: 'Invalid or expired verification link.' });
+    if (!user) return res.status(400).send({ success: false, message: 'Invalid or expired verification link.' });
 
     user.isVerified = true;
     user.verificationToken = undefined;
     user.verificationTokenExpiry = undefined;
     await user.save();
 
-    res.send({ message: 'Email verified successfully. You can now log in.' });
+    res.send({ success: true, message: 'Email verified successfully. You can now log in.' });
   } catch (error) {
     res.status(500).send(error);
   }
@@ -102,20 +102,20 @@ exports.login = async (req, res) => {
     const { email, password } = req.body;
 
     const user = await User.findOne({ email });
-    if (!user) return res.status(401).send({ message: 'Invalid email or password.' });
+    if (!user) return res.status(401).send({ success: false, message: 'Invalid email or password.' });
 
     if (user.provider === 'google') {
-      return res.status(403).send({ message: 'This account uses Google sign-in. Please continue with Google or add a password first.' });
+      return res.status(403).send({ success: false, message: 'This account uses Google sign-in. Please continue with Google.' });
     }
 
     if (!user.isVerified) {
-      return res.status(403).send({ message: 'Please verify your email before logging in.' });
+      return res.status(403).send({ success: false, message: 'Please verify your email before logging in.' });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(401).send({ message: 'Invalid email or password.' });
+    if (!isMatch) return res.status(401).send({ success: false, message: 'Invalid email or password.' });
 
-    res.send({ token: signToken(user), user: safeUser(user) });
+    res.send({ success: true, message: 'Login successful.', token: signToken(user), user: safeUser(user) });
   } catch (error) {
     res.status(500).send(error);
   }
@@ -144,12 +144,12 @@ exports.googleAuth = async (req, res) => {
         isVerified: true,
       });
     } else if (user.provider === 'local') {
-      return res.status(409).send({ message: 'This email is already registered with credentials. Please log in with email and password.' });
+      return res.status(409).send({ success: false, message: 'This email is already registered with credentials. Please log in with email and password.' });
     }
 
-    res.send({ token: signToken(user), user: safeUser(user) });
+    res.send({ success: true, message: 'Google sign-in successful.', token: signToken(user), user: safeUser(user) });
   } catch (error) {
-    res.status(401).send({ message: 'Invalid Google token.' });
+    res.status(401).send({ success: false, message: 'Invalid Google token.' });
   }
 };
 
@@ -159,7 +159,7 @@ exports.logout = async (req, res) => {
     const token = req.headers.authorization.split(' ')[1];
     const decoded = jwt.decode(token);
     await BlacklistedToken.create({ token, expiresAt: new Date(decoded.exp * 1000) });
-    res.send({ message: 'Logged out successfully.' });
+    res.send({ success: true, message: 'Logged out successfully.' });
   } catch (error) {
     res.status(500).send(error);
   }
@@ -169,9 +169,9 @@ exports.logout = async (req, res) => {
 exports.refreshToken = async (req, res) => {
   try {
     const user = await User.findById(req.user.id, { password: 0, verificationToken: 0, verificationTokenExpiry: 0 });
-    if (!user) return res.status(404).send({ message: 'User not found.' });
+    if (!user) return res.status(404).send({ success: false, message: 'User not found.' });
 
-    res.send({ token: signToken(user), user: safeUser(user) });
+    res.send({ success: true, message: 'Token refreshed.', token: signToken(user), user: safeUser(user) });
   } catch (error) {
     res.status(500).send(error);
   }
@@ -196,8 +196,8 @@ exports.makeAdmin = async (req, res) => {
       { role: 'admin' },
       { new: true, projection: { password: 0, verificationToken: 0, verificationTokenExpiry: 0 } }
     );
-    if (!user) return res.status(404).send({ message: 'User not found.' });
-    res.send(user);
+    if (!user) return res.status(404).send({ success: false, message: 'User not found.' });
+    res.send({ success: true, message: 'User is now an admin.', data: user });
   } catch (error) {
     res.status(500).send(error);
   }
@@ -211,8 +211,8 @@ exports.removeAdmin = async (req, res) => {
       { role: 'user' },
       { new: true, projection: { password: 0, verificationToken: 0, verificationTokenExpiry: 0 } }
     );
-    if (!user) return res.status(404).send({ message: 'User not found.' });
-    res.send(user);
+    if (!user) return res.status(404).send({ success: false, message: 'User not found.' });
+    res.send({ success: true, message: 'Admin role removed successfully.', data: user });
   } catch (error) {
     res.status(500).send(error);
   }
