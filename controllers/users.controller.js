@@ -1,13 +1,32 @@
 const User = require('../models/users');
+const BlacklistedToken = require('../models/blacklistedTokens');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
+const { OAuth2Client } = require('google-auth-library');
 const { sendVerificationEmail } = require('../utils/sendEmail');
 
-// Register
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
+const signToken = (user) =>
+  jwt.sign(
+    { id: user._id, email: user.email, role: user.role },
+    process.env.JWT_SECRET,
+    { expiresIn: '15m' }
+  );
+
+const safeUser = (user) => ({
+  id: user._id,
+  name: user.name,
+  email: user.email,
+  role: user.role,
+  provider: user.provider,
+});
+
+// Register with credentials
 exports.register = async (req, res) => {
   try {
-    const { name, email, password, phoneNumber, address, role } = req.body;
+    const { name, email, password, phoneNumber, address } = req.body;
 
     const existing = await User.findOne({ email });
     if (existing) return res.status(409).send({ message: 'Email is already registered.' });
@@ -22,7 +41,7 @@ exports.register = async (req, res) => {
       password: hashedPassword,
       phoneNumber,
       address,
-      role: role === 'admin' ? 'user' : (role || 'user'),
+      provider: 'local',
       verificationToken,
       verificationTokenExpiry,
     });
@@ -30,6 +49,27 @@ exports.register = async (req, res) => {
     await sendVerificationEmail(email, verificationToken);
 
     res.status(201).send({ message: 'Registration successful. Please check your email to verify your account.' });
+  } catch (error) {
+    res.status(500).send(error);
+  }
+};
+
+// Resend verification email
+exports.resendVerification = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).send({ message: 'No account found with this email.' });
+    if (user.isVerified) return res.status(400).send({ message: 'This account is already verified.' });
+
+    user.verificationToken = crypto.randomBytes(32).toString('hex');
+    user.verificationTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    await user.save();
+
+    await sendVerificationEmail(email, user.verificationToken);
+
+    res.send({ message: 'Verification email resent. Please check your inbox.' });
   } catch (error) {
     res.status(500).send(error);
   }
@@ -56,13 +96,17 @@ exports.verifyEmail = async (req, res) => {
   }
 };
 
-// Login
+// Login with credentials
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
     const user = await User.findOne({ email });
     if (!user) return res.status(401).send({ message: 'Invalid email or password.' });
+
+    if (user.provider === 'google') {
+      return res.status(403).send({ message: 'This account uses Google sign-in. Please continue with Google or add a password first.' });
+    }
 
     if (!user.isVerified) {
       return res.status(403).send({ message: 'Please verify your email before logging in.' });
@@ -71,16 +115,104 @@ exports.login = async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(401).send({ message: 'Invalid email or password.' });
 
-    const token = jwt.sign(
-      { id: user._id, email: user.email, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: '7d' }
-    );
+    res.send({ token: signToken(user), user: safeUser(user) });
+  } catch (error) {
+    res.status(500).send(error);
+  }
+};
 
-    res.send({
-      token,
-      user: { id: user._id, name: user.name, email: user.email, role: user.role },
+// Google sign-in / sign-up
+exports.googleAuth = async (req, res) => {
+  try {
+    const { token } = req.body;
+
+    const ticket = await googleClient.verifyIdToken({
+      idToken: token,
+      audience: process.env.GOOGLE_CLIENT_ID,
     });
+
+    const { sub: googleId, email, name } = ticket.getPayload();
+
+    let user = await User.findOne({ email });
+
+    if (!user) {
+      user = await User.create({
+        name,
+        email,
+        googleId,
+        provider: 'google',
+        isVerified: true,
+      });
+    } else if (user.provider === 'local') {
+      return res.status(409).send({ message: 'This email is already registered with credentials. Please log in with email and password.' });
+    }
+
+    res.send({ token: signToken(user), user: safeUser(user) });
+  } catch (error) {
+    res.status(401).send({ message: 'Invalid Google token.' });
+  }
+};
+
+// Logout
+exports.logout = async (req, res) => {
+  try {
+    const token = req.headers.authorization.split(' ')[1];
+    const decoded = jwt.decode(token);
+    await BlacklistedToken.create({ token, expiresAt: new Date(decoded.exp * 1000) });
+    res.send({ message: 'Logged out successfully.' });
+  } catch (error) {
+    res.status(500).send(error);
+  }
+};
+
+// Silent login — verify stored token and return a fresh one
+exports.refreshToken = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id, { password: 0, verificationToken: 0, verificationTokenExpiry: 0 });
+    if (!user) return res.status(404).send({ message: 'User not found.' });
+
+    res.send({ token: signToken(user), user: safeUser(user) });
+  } catch (error) {
+    res.status(500).send(error);
+  }
+};
+
+// Get current logged-in user
+exports.getMe = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id, { password: 0, verificationToken: 0, verificationTokenExpiry: 0 });
+    if (!user) return res.status(404).send({ message: 'User not found.' });
+    res.send(user);
+  } catch (error) {
+    res.status(500).send(error);
+  }
+};
+
+// Make user an admin
+exports.makeAdmin = async (req, res) => {
+  try {
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      { role: 'admin' },
+      { new: true, projection: { password: 0, verificationToken: 0, verificationTokenExpiry: 0 } }
+    );
+    if (!user) return res.status(404).send({ message: 'User not found.' });
+    res.send(user);
+  } catch (error) {
+    res.status(500).send(error);
+  }
+};
+
+// Remove admin role
+exports.removeAdmin = async (req, res) => {
+  try {
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      { role: 'user' },
+      { new: true, projection: { password: 0, verificationToken: 0, verificationTokenExpiry: 0 } }
+    );
+    if (!user) return res.status(404).send({ message: 'User not found.' });
+    res.send(user);
   } catch (error) {
     res.status(500).send(error);
   }

@@ -13,20 +13,27 @@ const usersSchema = new mongoose.Schema(
     },
     password: {
       type: String,
-      required: true,
     },
     phoneNumber: {
       type: String,
-      required: true,
+      default: '',
     },
     address: {
       type: String,
-      required: true,
+      default: '',
     },
     role: {
       type: String,
       enum: ['user', 'admin'],
       default: 'user',
+    },
+    provider: {
+      type: String,
+      enum: ['local', 'google'],
+      default: 'local',
+    },
+    googleId: {
+      type: String,
     },
     isVerified: {
       type: Boolean,

@@ -1,4 +1,8 @@
 const Book = require("../models/books");
+const Author = require("../models/authors");
+const Publisher = require("../models/publishers");
+const Category = require("../models/categories");
+const { uploadImage } = require("../utils/cloudinary");
 
 // Get all books
 exports.getBooks = async (req, res) => {
@@ -10,10 +14,11 @@ exports.getBooks = async (req, res) => {
   }
 };
 
-// Get book by name
+// Get book by ID
 exports.getBook = async (req, res) => {
   try {
-    const result = await Book.findOne({ bookName: req.params.bookName });
+    const result = await Book.findById(req.params.id);
+    if (!result) return res.status(404).send({ message: 'Book not found.' });
     res.send(result);
   } catch (error) {
     res.status(500).send(error);
@@ -85,11 +90,14 @@ exports.newArrivals = async (req, res) => {
   }
 };
 
-// Books by author
+// Books by author ID
 exports.booksByAuthor = async (req, res) => {
   try {
+    const author = await Author.findById(req.params.id);
+    if (!author) return res.status(404).send({ message: 'Author not found.' });
+
     const result = await Book.find(
-      { authorName: req.params.authorName },
+      { authorName: author.name },
       { bookName: 1, bookImage: 1, price: 1, soldCopies: 1, availableCopies: 1, category: 1 }
     );
 
@@ -99,11 +107,14 @@ exports.booksByAuthor = async (req, res) => {
   }
 };
 
-// Books by publisher
+// Books by publisher ID
 exports.booksByPublisher = async (req, res) => {
   try {
+    const publisher = await Publisher.findById(req.params.id);
+    if (!publisher) return res.status(404).send({ message: 'Publisher not found.' });
+
     const result = await Book.find(
-      { publisherName: req.params.publisherName },
+      { publisherName: publisher.name },
       { bookName: 1, bookImage: 1, price: 1, soldCopies: 1, availableCopies: 1, category: 1 }
     );
 
@@ -113,11 +124,14 @@ exports.booksByPublisher = async (req, res) => {
   }
 };
 
-// Books by category
+// Books by category ID
 exports.booksByCategory = async (req, res) => {
   try {
+    const category = await Category.findById(req.params.id);
+    if (!category) return res.status(404).send({ message: 'Category not found.' });
+
     const result = await Book.find(
-      { category: req.params.category },
+      { category: category.name },
       { bookName: 1, bookImage: 1, price: 1, soldCopies: 1, availableCopies: 1, category: 1 }
     );
 
@@ -130,7 +144,16 @@ exports.booksByCategory = async (req, res) => {
 // Add book
 exports.addBook = async (req, res) => {
   try {
-    const result = await Book.create(req.body);
+    let bookImage;
+    if (req.file) {
+      bookImage = await uploadImage(req.file.buffer, req.file.mimetype);
+    } else if (req.body.bookImage) {
+      bookImage = req.body.bookImage;
+    } else {
+      return res.status(400).send({ message: 'Book image is required.' });
+    }
+
+    const result = await Book.create({ ...req.body, bookImage });
     res.send(result);
   } catch (error) {
     res.status(500).send(error);
@@ -140,9 +163,15 @@ exports.addBook = async (req, res) => {
 // Update book
 exports.updateBook = async (req, res) => {
   try {
+    const updateData = { ...req.body };
+
+    if (req.file) {
+      updateData.bookImage = await uploadImage(req.file.buffer, req.file.mimetype);
+    }
+
     const result = await Book.findByIdAndUpdate(
       req.params.id,
-      req.body,
+      updateData,
       { new: true, upsert: true }
     );
 

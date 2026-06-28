@@ -23,7 +23,7 @@ exports.placeOrder = async (req, res) => {
     }
 
     const order = await Order.create({
-      userId: req.user.id,
+      userId: req.user?.id || null,
       books: orderBooks,
       totalAmount,
     });

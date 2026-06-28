@@ -1,9 +1,9 @@
 const express = require("express");
 const router = express.Router();
 const controller = require("../controllers/orders.controller");
-const { auth, adminOnly } = require("../middleware/auth");
+const { auth, adminOnly, optionalAuth } = require("../middleware/auth");
 
-router.post("/place-order", auth, controller.placeOrder);
+router.post("/place-order", optionalAuth, controller.placeOrder);
 router.get("/my-orders", auth, controller.getUserOrders);
 
 router.get("/orders", auth, adminOnly, controller.getAllOrders);

@@ -6,8 +6,8 @@ const swaggerSpec = {
     description: 'REST API for the Chapter & Verse book management system',
   },
   servers: [
-    { url: 'http://localhost:5000', description: 'Local' },
     { url: process.env.SERVER_URL, description: 'Production' },
+    { url: 'http://localhost:5000', description: 'Local' },
   ],
   components: {
     securitySchemes: {
@@ -238,8 +238,119 @@ const swaggerSpec = {
         },
       },
     },
+    '/resend-verification': {
+      post: {
+        tags: ['Auth'],
+        summary: 'Resend email verification link',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['email'],
+                properties: {
+                  email: { type: 'string', example: 'aniqa@example.com' },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: { description: 'Verification email resent.' },
+          400: { description: 'Account is already verified.' },
+          404: { description: 'No account found with this email.' },
+          500: { description: 'Server error.' },
+        },
+      },
+    },
+    '/auth/google': {
+      post: {
+        tags: ['Auth'],
+        summary: 'Sign in with Google',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['token'],
+                properties: {
+                  token: { type: 'string', description: 'Google ID token from the frontend OAuth flow', example: 'eyJhbGci...' },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'Signed in successfully.',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    token: { type: 'string', example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...' },
+                    user: { $ref: '#/components/schemas/User' },
+                  },
+                },
+              },
+            },
+          },
+          401: { description: 'Invalid Google token.' },
+          409: { description: 'Email already registered with credentials.' },
+        },
+      },
+    },
+    '/logout': {
+      post: {
+        tags: ['Auth'],
+        summary: 'Logout and invalidate the current token',
+        security: [{ BearerAuth: [] }],
+        responses: {
+          200: { description: 'Logged out successfully.' },
+          401: { description: 'Unauthorized.' },
+        },
+      },
+    },
+    '/refresh-token': {
+      post: {
+        tags: ['Auth'],
+        summary: 'Silent login — verify stored token and receive a fresh one',
+        security: [{ BearerAuth: [] }],
+        responses: {
+          200: {
+            description: 'Token refreshed.',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    token: { type: 'string', example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...' },
+                    user: { $ref: '#/components/schemas/User' },
+                  },
+                },
+              },
+            },
+          },
+          401: { description: 'Token expired or invalid.' },
+        },
+      },
+    },
 
     // ─── Users ─────────────────────────────────────────────────────────────
+    '/me': {
+      get: {
+        tags: ['Users'],
+        summary: 'Get current logged-in user profile',
+        security: [{ BearerAuth: [] }],
+        responses: {
+          200: { description: 'Current user.', content: { 'application/json': { schema: { $ref: '#/components/schemas/User' } } } },
+          401: { description: 'Unauthorized.' },
+          404: { description: 'User not found.' },
+        },
+      },
+    },
     '/users': {
       get: {
         tags: ['Users'],
@@ -252,6 +363,34 @@ const swaggerSpec = {
           },
           401: { description: 'No token provided.' },
           403: { description: 'Admin access required.' },
+        },
+      },
+    },
+    '/make-admin/{id}': {
+      patch: {
+        tags: ['Users'],
+        summary: 'Grant admin role to a user (admin only)',
+        security: [{ BearerAuth: [] }],
+        parameters: [{ in: 'path', name: 'id', required: true, schema: { type: 'string' } }],
+        responses: {
+          200: { description: 'User is now an admin.', content: { 'application/json': { schema: { $ref: '#/components/schemas/User' } } } },
+          401: { description: 'Unauthorized.' },
+          403: { description: 'Admin access required.' },
+          404: { description: 'User not found.' },
+        },
+      },
+    },
+    '/remove-admin/{id}': {
+      patch: {
+        tags: ['Users'],
+        summary: 'Remove admin role from a user (admin only)',
+        security: [{ BearerAuth: [] }],
+        parameters: [{ in: 'path', name: 'id', required: true, schema: { type: 'string' } }],
+        responses: {
+          200: { description: 'Admin role removed.', content: { 'application/json': { schema: { $ref: '#/components/schemas/User' } } } },
+          401: { description: 'Unauthorized.' },
+          403: { description: 'Admin access required.' },
+          404: { description: 'User not found.' },
         },
       },
     },
@@ -303,44 +442,47 @@ const swaggerSpec = {
         },
       },
     },
-    '/books/{bookName}': {
+    '/books/{id}': {
       get: {
         tags: ['Books'],
-        summary: 'Get a single book by exact name',
-        parameters: [{ in: 'path', name: 'bookName', required: true, schema: { type: 'string' }, example: 'The Alchemist' }],
+        summary: 'Get a single book by ID',
+        parameters: [{ in: 'path', name: 'id', required: true, schema: { type: 'string' }, example: '64b1f2c3d4e5f6a7b8c9d0e1' }],
         responses: {
           200: { description: 'Book details.', content: { 'application/json': { schema: { $ref: '#/components/schemas/Book' } } } },
           404: { description: 'Book not found.' },
         },
       },
     },
-    '/books-by-author/{authorName}': {
+    '/books-by-author/{id}': {
       get: {
         tags: ['Books'],
-        summary: 'Get all books by a specific author',
-        parameters: [{ in: 'path', name: 'authorName', required: true, schema: { type: 'string' }, example: 'Paulo Coelho' }],
+        summary: 'Get all books by author ID',
+        parameters: [{ in: 'path', name: 'id', required: true, schema: { type: 'string' }, example: '64b1f2c3d4e5f6a7b8c9d0e1' }],
         responses: {
           200: { description: 'Books by author.', content: { 'application/json': { schema: { type: 'array', items: { $ref: '#/components/schemas/Book' } } } } },
+          404: { description: 'Author not found.' },
         },
       },
     },
-    '/books-by-publisher/{publisherName}': {
+    '/books-by-publisher/{id}': {
       get: {
         tags: ['Books'],
-        summary: 'Get all books by a specific publisher',
-        parameters: [{ in: 'path', name: 'publisherName', required: true, schema: { type: 'string' }, example: 'HarperCollins' }],
+        summary: 'Get all books by publisher ID',
+        parameters: [{ in: 'path', name: 'id', required: true, schema: { type: 'string' }, example: '64b1f2c3d4e5f6a7b8c9d0e1' }],
         responses: {
           200: { description: 'Books by publisher.', content: { 'application/json': { schema: { type: 'array', items: { $ref: '#/components/schemas/Book' } } } } },
+          404: { description: 'Publisher not found.' },
         },
       },
     },
-    '/books-by-category/{category}': {
+    '/books-by-category/{id}': {
       get: {
         tags: ['Books'],
-        summary: 'Get all books in a specific category',
-        parameters: [{ in: 'path', name: 'category', required: true, schema: { type: 'string' }, example: 'Fiction' }],
+        summary: 'Get all books by category ID',
+        parameters: [{ in: 'path', name: 'id', required: true, schema: { type: 'string' }, example: '64b1f2c3d4e5f6a7b8c9d0e1' }],
         responses: {
           200: { description: 'Books by category.', content: { 'application/json': { schema: { type: 'array', items: { $ref: '#/components/schemas/Book' } } } } },
+          404: { description: 'Category not found.' },
         },
       },
     },
@@ -351,7 +493,27 @@ const swaggerSpec = {
         security: [{ BearerAuth: [] }],
         requestBody: {
           required: true,
-          content: { 'application/json': { schema: { $ref: '#/components/schemas/BookInput' } } },
+          content: {
+            'multipart/form-data': {
+              schema: {
+                type: 'object',
+                required: ['bookName', 'authorName', 'publisherName', 'price', 'category', 'dateOfArrival', 'availableCopies', 'soldCopies', 'description', 'numberOfPages'],
+                properties: {
+                  bookImage: { type: 'string', format: 'binary', description: 'Book cover image file' },
+                  bookName: { type: 'string', example: 'The Alchemist' },
+                  authorName: { type: 'string', example: 'Paulo Coelho' },
+                  publisherName: { type: 'string', example: 'HarperCollins' },
+                  price: { type: 'number', example: 15.99 },
+                  category: { type: 'string', example: 'Fiction' },
+                  dateOfArrival: { type: 'string', format: 'date', example: '2024-01-15' },
+                  availableCopies: { type: 'integer', example: 50 },
+                  soldCopies: { type: 'integer', example: 0 },
+                  description: { type: 'string', example: 'A novel about following your dreams.' },
+                  numberOfPages: { type: 'integer', example: 208 },
+                },
+              },
+            },
+          },
         },
         responses: {
           200: { description: 'Book added.', content: { 'application/json': { schema: { $ref: '#/components/schemas/Book' } } } },
@@ -368,7 +530,26 @@ const swaggerSpec = {
         parameters: [{ in: 'path', name: 'id', required: true, schema: { type: 'string' } }],
         requestBody: {
           required: true,
-          content: { 'application/json': { schema: { $ref: '#/components/schemas/BookInput' } } },
+          content: {
+            'multipart/form-data': {
+              schema: {
+                type: 'object',
+                properties: {
+                  bookImage: { type: 'string', format: 'binary', description: 'New book cover image (optional)' },
+                  bookName: { type: 'string', example: 'The Alchemist' },
+                  authorName: { type: 'string', example: 'Paulo Coelho' },
+                  publisherName: { type: 'string', example: 'HarperCollins' },
+                  price: { type: 'number', example: 15.99 },
+                  category: { type: 'string', example: 'Fiction' },
+                  dateOfArrival: { type: 'string', format: 'date', example: '2024-01-15' },
+                  availableCopies: { type: 'integer', example: 50 },
+                  soldCopies: { type: 'integer', example: 0 },
+                  description: { type: 'string', example: 'A novel about following your dreams.' },
+                  numberOfPages: { type: 'integer', example: 208 },
+                },
+              },
+            },
+          },
         },
         responses: {
           200: { description: 'Book updated.', content: { 'application/json': { schema: { $ref: '#/components/schemas/Book' } } } },
@@ -567,8 +748,7 @@ const swaggerSpec = {
     '/place-order': {
       post: {
         tags: ['Orders'],
-        summary: 'Place a new order (authenticated users)',
-        security: [{ BearerAuth: [] }],
+        summary: 'Place a new order (public — token optional, links order to account if provided)',
         requestBody: {
           required: true,
           content: {
