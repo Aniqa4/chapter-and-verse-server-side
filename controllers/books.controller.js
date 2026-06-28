@@ -1,7 +1,4 @@
 const Book = require("../models/books");
-const Author = require("../models/authors");
-const Publisher = require("../models/publishers");
-const Category = require("../models/categories");
 const { uploadImage } = require("../utils/cloudinary");
 
 // Get all books
@@ -14,10 +11,10 @@ exports.getBooks = async (req, res) => {
   }
 };
 
-// Get book by ID
+// Get book by name
 exports.getBook = async (req, res) => {
   try {
-    const result = await Book.findById(req.params.id);
+    const result = await Book.findOne({ bookName: req.params.id });
     if (!result) return res.status(404).send({ message: 'Book not found.' });
     res.send(result);
   } catch (error) {
@@ -31,7 +28,7 @@ exports.searchBooks = async (req, res) => {
     const regex = new RegExp(req.params.bookName, "i");
     const result = await Book.find(
       { bookName: regex },
-      { bookName: 1 }
+      { bookName: 1, category: 1 }
     ).sort({ bookName: 1 });
 
     res.send(result);
@@ -90,51 +87,39 @@ exports.newArrivals = async (req, res) => {
   }
 };
 
-// Books by author ID
+// Books by author name
 exports.booksByAuthor = async (req, res) => {
   try {
-    const author = await Author.findById(req.params.id);
-    if (!author) return res.status(404).send({ message: 'Author not found.' });
-
     const result = await Book.find(
-      { authorName: author.name },
+      { authorName: req.params.id },
       { bookName: 1, bookImage: 1, price: 1, soldCopies: 1, availableCopies: 1, category: 1 }
     );
-
     res.send(result);
   } catch (error) {
     res.status(500).send(error);
   }
 };
 
-// Books by publisher ID
+// Books by publisher name
 exports.booksByPublisher = async (req, res) => {
   try {
-    const publisher = await Publisher.findById(req.params.id);
-    if (!publisher) return res.status(404).send({ message: 'Publisher not found.' });
-
     const result = await Book.find(
-      { publisherName: publisher.name },
+      { publisherName: req.params.id },
       { bookName: 1, bookImage: 1, price: 1, soldCopies: 1, availableCopies: 1, category: 1 }
     );
-
     res.send(result);
   } catch (error) {
     res.status(500).send(error);
   }
 };
 
-// Books by category ID
+// Books by category name
 exports.booksByCategory = async (req, res) => {
   try {
-    const category = await Category.findById(req.params.id);
-    if (!category) return res.status(404).send({ message: 'Category not found.' });
-
     const result = await Book.find(
-      { category: category.name },
+      { category: req.params.id },
       { bookName: 1, bookImage: 1, price: 1, soldCopies: 1, availableCopies: 1, category: 1 }
     );
-
     res.send(result);
   } catch (error) {
     res.status(500).send(error);

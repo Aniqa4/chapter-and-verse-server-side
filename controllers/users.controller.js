@@ -4,7 +4,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const { OAuth2Client } = require('google-auth-library');
-const { sendVerificationEmail } = require('../utils/sendEmail');
+const { sendVerificationEmail, sendPasswordResetEmail } = require('../utils/sendEmail');
 
 const googleClient = new OAuth2Client(
   process.env.GOOGLE_CLIENT_ID,
@@ -122,6 +122,38 @@ exports.login = async (req, res) => {
     res.send({ success: true, message: 'Login successful.', token: signToken(user), user: safeUser(user) });
   } catch (error) {
     res.status(500).send(error);
+  }
+};
+
+// POST /auth/google — verifies Google ID token credential from frontend (@react-oauth/google)
+exports.googleAuth = async (req, res) => {
+  try {
+    const { credential } = req.body;
+
+    const ticket = await googleClient.verifyIdToken({
+      idToken: credential,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+
+    const { sub: googleId, email, name } = ticket.getPayload();
+
+    let user = await User.findOne({ email });
+
+    if (!user) {
+      user = await User.create({
+        name,
+        email,
+        googleId,
+        provider: 'google',
+        isVerified: true,
+      });
+    } else if (user.provider === 'local') {
+      return res.status(409).send({ success: false, message: 'This email is already registered with credentials. Please log in with email and password.' });
+    }
+
+    res.send({ success: true, message: 'Google sign-in successful.', token: signToken(user), user: safeUser(user) });
+  } catch (error) {
+    res.status(401).send({ success: false, message: 'Invalid Google credential.' });
   }
 };
 
@@ -255,6 +287,60 @@ exports.getUsers = async (req, res) => {
   try {
     const result = await User.find({}, { password: 0, verificationToken: 0, verificationTokenExpiry: 0 });
     res.send(result);
+  } catch (error) {
+    res.status(500).send(error);
+  }
+};
+
+// Forgot password — generate token and send reset email
+exports.forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      // Return success to avoid revealing whether the email exists
+      return res.send({ success: true, message: 'If that email is registered, a reset link has been sent.' });
+    }
+
+    if (user.provider === 'google') {
+      return res.status(400).send({ success: false, message: 'This account uses Google sign-in. No password to reset.' });
+    }
+
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    user.resetPasswordToken = resetToken;
+    user.resetPasswordTokenExpiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+    await user.save();
+
+    await sendPasswordResetEmail(email, resetToken);
+
+    res.send({ success: true, message: 'If that email is registered, a reset link has been sent.' });
+  } catch (error) {
+    res.status(500).send(error);
+  }
+};
+
+// Reset password — validate token and set new password
+exports.resetPassword = async (req, res) => {
+  try {
+    const { token } = req.params;
+    const { password } = req.body;
+
+    const user = await User.findOne({
+      resetPasswordToken: token,
+      resetPasswordTokenExpiry: { $gt: new Date() },
+    });
+
+    if (!user) {
+      return res.status(400).send({ success: false, message: 'Invalid or expired reset link.' });
+    }
+
+    user.password = await bcrypt.hash(password, 10);
+    user.resetPasswordToken = undefined;
+    user.resetPasswordTokenExpiry = undefined;
+    await user.save();
+
+    res.send({ success: true, message: 'Password reset successfully. You can now log in.' });
   } catch (error) {
     res.status(500).send(error);
   }

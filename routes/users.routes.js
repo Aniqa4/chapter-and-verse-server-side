@@ -6,7 +6,10 @@ const { auth, adminOnly } = require("../middleware/auth");
 router.post("/register", controller.register);
 router.post("/resend-verification", controller.resendVerification);
 router.post("/login", controller.login);
-router.get("/auth/google", controller.googleAuthRedirect);
+router.post("/forgot-password", controller.forgotPassword);
+router.post("/reset-password/:token", controller.resetPassword);
+router.post("/auth/google", controller.googleAuth);
+router.get("/auth/google/redirect", controller.googleAuthRedirect);
 router.get("/auth/google/callback", controller.googleAuthCallback);
 router.get("/verify-email/:token", controller.verifyEmail);
 

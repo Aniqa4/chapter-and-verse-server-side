@@ -11,7 +11,7 @@ const transporter = nodemailer.createTransport({
 });
 
 async function sendVerificationEmail(email, token) {
-  const verifyUrl = `${process.env.SERVER_URL}/verify-email/${token}`;
+  const verifyUrl = `${process.env.CLIENT_URL}/verify-email/${token}`;
 
   await transporter.sendMail({
     from: `"Chapter & Verse" <${process.env.EMAIL_USER}>`,
@@ -28,4 +28,23 @@ async function sendVerificationEmail(email, token) {
   });
 }
 
-module.exports = { sendVerificationEmail };
+async function sendPasswordResetEmail(email, token) {
+  const resetUrl = `${process.env.CLIENT_URL}/reset-password/${token}`;
+
+  await transporter.sendMail({
+    from: `"Chapter & Verse" <${process.env.EMAIL_USER}>`,
+    to: email,
+    subject: 'Reset your Chapter & Verse password',
+    html: `
+      <h2>Password Reset Request</h2>
+      <p>Click the link below to reset your password. This link expires in 1 hour.</p>
+      <a href="${resetUrl}" style="background:#4f46e5;color:#fff;padding:10px 20px;border-radius:4px;text-decoration:none;">
+        Reset Password
+      </a>
+      <p>Or copy this URL: ${resetUrl}</p>
+      <p>If you did not request a password reset, you can safely ignore this email.</p>
+    `,
+  });
+}
+
+module.exports = { sendVerificationEmail, sendPasswordResetEmail };
