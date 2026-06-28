@@ -1,0 +1,685 @@
+const swaggerSpec = {
+  openapi: '3.0.0',
+  info: {
+    title: 'Chapter & Verse API',
+    version: '1.0.0',
+    description: 'REST API for the Chapter & Verse book management system',
+  },
+  servers: [
+    { url: 'http://localhost:5000', description: 'Local' },
+    { url: process.env.SERVER_URL, description: 'Production' },
+  ],
+  components: {
+    securitySchemes: {
+      BearerAuth: {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        description: 'Enter the JWT token you received from /login',
+      },
+    },
+    schemas: {
+      User: {
+        type: 'object',
+        properties: {
+          _id: { type: 'string', example: '64b1f2c3d4e5f6a7b8c9d0e1' },
+          name: { type: 'string', example: 'Aniqa Rahman' },
+          email: { type: 'string', example: 'aniqa@example.com' },
+          phoneNumber: { type: 'string', example: '01700000000' },
+          address: { type: 'string', example: 'Dhaka' },
+          role: { type: 'string', enum: ['user', 'admin'], example: 'user' },
+          isVerified: { type: 'boolean', example: true },
+          createdAt: { type: 'string', format: 'date-time' },
+        },
+      },
+      Book: {
+        type: 'object',
+        properties: {
+          _id: { type: 'string', example: '64b1f2c3d4e5f6a7b8c9d0e1' },
+          bookName: { type: 'string', example: 'The Alchemist' },
+          bookImage: { type: 'string', example: 'https://example.com/alchemist.jpg' },
+          authorName: { type: 'string', example: 'Paulo Coelho' },
+          publisherName: { type: 'string', example: 'HarperCollins' },
+          price: { type: 'number', example: 15.99 },
+          category: { type: 'string', example: 'Fiction' },
+          dateOfArrival: { type: 'string', format: 'date', example: '2024-01-15' },
+          availableCopies: { type: 'integer', example: 50 },
+          soldCopies: { type: 'integer', example: 120 },
+          description: { type: 'string', example: 'A novel about following your dreams.' },
+          numberOfPages: { type: 'integer', example: 208 },
+        },
+      },
+      BookInput: {
+        type: 'object',
+        required: ['bookName', 'bookImage', 'authorName', 'publisherName', 'price', 'category', 'dateOfArrival', 'availableCopies', 'soldCopies', 'description', 'numberOfPages'],
+        properties: {
+          bookName: { type: 'string', example: 'The Alchemist' },
+          bookImage: { type: 'string', example: 'https://example.com/alchemist.jpg' },
+          authorName: { type: 'string', example: 'Paulo Coelho' },
+          publisherName: { type: 'string', example: 'HarperCollins' },
+          price: { type: 'number', example: 15.99 },
+          category: { type: 'string', example: 'Fiction' },
+          dateOfArrival: { type: 'string', format: 'date', example: '2024-01-15' },
+          availableCopies: { type: 'integer', example: 50 },
+          soldCopies: { type: 'integer', example: 0 },
+          description: { type: 'string', example: 'A novel about following your dreams.' },
+          numberOfPages: { type: 'integer', example: 208 },
+        },
+      },
+      Author: {
+        type: 'object',
+        properties: {
+          _id: { type: 'string', example: '64b1f2c3d4e5f6a7b8c9d0e1' },
+          name: { type: 'string', example: 'Paulo Coelho' },
+          email: { type: 'string', example: 'paulo@example.com' },
+          phone: { type: 'string', example: '01800000000' },
+          desciption: { type: 'string', example: 'Brazilian author known for The Alchemist.' },
+        },
+      },
+      AuthorInput: {
+        type: 'object',
+        required: ['name', 'email', 'phone', 'desciption'],
+        properties: {
+          name: { type: 'string', example: 'Paulo Coelho' },
+          email: { type: 'string', example: 'paulo@example.com' },
+          phone: { type: 'string', example: '01800000000' },
+          desciption: { type: 'string', example: 'Brazilian author known for The Alchemist.' },
+        },
+      },
+      Publisher: {
+        type: 'object',
+        properties: {
+          _id: { type: 'string', example: '64b1f2c3d4e5f6a7b8c9d0e1' },
+          name: { type: 'string', example: 'HarperCollins' },
+          email: { type: 'string', example: 'contact@harpercollins.com' },
+          phone: { type: 'string', example: '01900000000' },
+          desciption: { type: 'string', example: 'One of the largest publishing companies.' },
+        },
+      },
+      PublisherInput: {
+        type: 'object',
+        required: ['name', 'email', 'phone', 'desciption'],
+        properties: {
+          name: { type: 'string', example: 'HarperCollins' },
+          email: { type: 'string', example: 'contact@harpercollins.com' },
+          phone: { type: 'string', example: '01900000000' },
+          desciption: { type: 'string', example: 'One of the largest publishing companies.' },
+        },
+      },
+      Category: {
+        type: 'object',
+        properties: {
+          _id: { type: 'string', example: '64b1f2c3d4e5f6a7b8c9d0e1' },
+          name: { type: 'string', example: 'Fiction' },
+          image: { type: 'string', example: 'https://example.com/fiction.jpg' },
+          desciption: { type: 'string', example: 'Fictional story books.' },
+        },
+      },
+      Order: {
+        type: 'object',
+        properties: {
+          _id: { type: 'string', example: '64b1f2c3d4e5f6a7b8c9d0e1' },
+          userId: { type: 'string', example: '64b1f2c3d4e5f6a7b8c9d0e2' },
+          books: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                bookId: { type: 'string', example: '64b1f2c3d4e5f6a7b8c9d0e3' },
+                bookName: { type: 'string', example: 'The Alchemist' },
+                quantity: { type: 'integer', example: 2 },
+                price: { type: 'number', example: 15.99 },
+              },
+            },
+          },
+          totalAmount: { type: 'number', example: 31.98 },
+          orderStatus: { type: 'string', enum: ['pending', 'processing', 'shipped', 'delivered', 'cancelled'], example: 'pending' },
+          paymentStatus: { type: 'string', enum: ['pending', 'paid', 'failed', 'refunded'], example: 'pending' },
+          createdAt: { type: 'string', format: 'date-time' },
+        },
+      },
+      Error: {
+        type: 'object',
+        properties: {
+          message: { type: 'string', example: 'Something went wrong.' },
+        },
+      },
+    },
+  },
+  tags: [
+    { name: 'Auth', description: 'Registration, login, and email verification' },
+    { name: 'Users', description: 'User management (admin only)' },
+    { name: 'Books', description: 'Book catalog and management' },
+    { name: 'Authors', description: 'Author management' },
+    { name: 'Publishers', description: 'Publisher management' },
+    { name: 'Categories', description: 'Book categories' },
+    { name: 'Orders', description: 'Order placement and management' },
+  ],
+  paths: {
+    // ─── Auth ──────────────────────────────────────────────────────────────
+    '/register': {
+      post: {
+        tags: ['Auth'],
+        summary: 'Register a new user',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['name', 'email', 'password', 'phoneNumber', 'address'],
+                properties: {
+                  name: { type: 'string', example: 'Aniqa Rahman' },
+                  email: { type: 'string', example: 'aniqa@example.com' },
+                  password: { type: 'string', example: 'securepassword123' },
+                  phoneNumber: { type: 'string', example: '01700000000' },
+                  address: { type: 'string', example: 'Dhaka' },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          201: { description: 'Registered successfully. Verification email sent.' },
+          409: { description: 'Email already registered.', content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } } },
+          500: { description: 'Server error.' },
+        },
+      },
+    },
+    '/login': {
+      post: {
+        tags: ['Auth'],
+        summary: 'Login and receive a JWT token',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['email', 'password'],
+                properties: {
+                  email: { type: 'string', example: 'aniqa@example.com' },
+                  password: { type: 'string', example: 'securepassword123' },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'Login successful.',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    token: { type: 'string', example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...' },
+                    user: { $ref: '#/components/schemas/User' },
+                  },
+                },
+              },
+            },
+          },
+          401: { description: 'Invalid email or password.' },
+          403: { description: 'Email not verified.' },
+          500: { description: 'Server error.' },
+        },
+      },
+    },
+    '/verify-email/{token}': {
+      get: {
+        tags: ['Auth'],
+        summary: 'Verify email using the token sent to inbox',
+        parameters: [{ in: 'path', name: 'token', required: true, schema: { type: 'string' } }],
+        responses: {
+          200: { description: 'Email verified successfully.' },
+          400: { description: 'Invalid or expired token.' },
+          500: { description: 'Server error.' },
+        },
+      },
+    },
+
+    // ─── Users ─────────────────────────────────────────────────────────────
+    '/users': {
+      get: {
+        tags: ['Users'],
+        summary: 'Get all users (admin only)',
+        security: [{ BearerAuth: [] }],
+        responses: {
+          200: {
+            description: 'List of all users.',
+            content: { 'application/json': { schema: { type: 'array', items: { $ref: '#/components/schemas/User' } } } },
+          },
+          401: { description: 'No token provided.' },
+          403: { description: 'Admin access required.' },
+        },
+      },
+    },
+
+    // ─── Books ─────────────────────────────────────────────────────────────
+    '/books': {
+      get: {
+        tags: ['Books'],
+        summary: 'Get all books',
+        responses: {
+          200: { description: 'List of all books.', content: { 'application/json': { schema: { type: 'array', items: { $ref: '#/components/schemas/Book' } } } } },
+        },
+      },
+    },
+    '/featured-books': {
+      get: {
+        tags: ['Books'],
+        summary: 'Get top 5 featured books (sorted by name)',
+        responses: {
+          200: { description: 'Featured books.', content: { 'application/json': { schema: { type: 'array', items: { $ref: '#/components/schemas/Book' } } } } },
+        },
+      },
+    },
+    '/best-selling': {
+      get: {
+        tags: ['Books'],
+        summary: 'Get top 5 best-selling books (sorted by soldCopies)',
+        responses: {
+          200: { description: 'Best-selling books.', content: { 'application/json': { schema: { type: 'array', items: { $ref: '#/components/schemas/Book' } } } } },
+        },
+      },
+    },
+    '/new-arrivals': {
+      get: {
+        tags: ['Books'],
+        summary: 'Get top 5 newest books (sorted by dateOfArrival)',
+        responses: {
+          200: { description: 'New arrivals.', content: { 'application/json': { schema: { type: 'array', items: { $ref: '#/components/schemas/Book' } } } } },
+        },
+      },
+    },
+    '/search-books/{bookName}': {
+      get: {
+        tags: ['Books'],
+        summary: 'Search books by name (case-insensitive)',
+        parameters: [{ in: 'path', name: 'bookName', required: true, schema: { type: 'string' }, example: 'alchemist' }],
+        responses: {
+          200: { description: 'Matching books.', content: { 'application/json': { schema: { type: 'array', items: { $ref: '#/components/schemas/Book' } } } } },
+        },
+      },
+    },
+    '/books/{bookName}': {
+      get: {
+        tags: ['Books'],
+        summary: 'Get a single book by exact name',
+        parameters: [{ in: 'path', name: 'bookName', required: true, schema: { type: 'string' }, example: 'The Alchemist' }],
+        responses: {
+          200: { description: 'Book details.', content: { 'application/json': { schema: { $ref: '#/components/schemas/Book' } } } },
+          404: { description: 'Book not found.' },
+        },
+      },
+    },
+    '/books-by-author/{authorName}': {
+      get: {
+        tags: ['Books'],
+        summary: 'Get all books by a specific author',
+        parameters: [{ in: 'path', name: 'authorName', required: true, schema: { type: 'string' }, example: 'Paulo Coelho' }],
+        responses: {
+          200: { description: 'Books by author.', content: { 'application/json': { schema: { type: 'array', items: { $ref: '#/components/schemas/Book' } } } } },
+        },
+      },
+    },
+    '/books-by-publisher/{publisherName}': {
+      get: {
+        tags: ['Books'],
+        summary: 'Get all books by a specific publisher',
+        parameters: [{ in: 'path', name: 'publisherName', required: true, schema: { type: 'string' }, example: 'HarperCollins' }],
+        responses: {
+          200: { description: 'Books by publisher.', content: { 'application/json': { schema: { type: 'array', items: { $ref: '#/components/schemas/Book' } } } } },
+        },
+      },
+    },
+    '/books-by-category/{category}': {
+      get: {
+        tags: ['Books'],
+        summary: 'Get all books in a specific category',
+        parameters: [{ in: 'path', name: 'category', required: true, schema: { type: 'string' }, example: 'Fiction' }],
+        responses: {
+          200: { description: 'Books by category.', content: { 'application/json': { schema: { type: 'array', items: { $ref: '#/components/schemas/Book' } } } } },
+        },
+      },
+    },
+    '/add-books': {
+      post: {
+        tags: ['Books'],
+        summary: 'Add a new book (admin only)',
+        security: [{ BearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: { 'application/json': { schema: { $ref: '#/components/schemas/BookInput' } } },
+        },
+        responses: {
+          200: { description: 'Book added.', content: { 'application/json': { schema: { $ref: '#/components/schemas/Book' } } } },
+          401: { description: 'Unauthorized.' },
+          403: { description: 'Admin access required.' },
+        },
+      },
+    },
+    '/update-book/{id}': {
+      put: {
+        tags: ['Books'],
+        summary: 'Update a book by ID (admin only)',
+        security: [{ BearerAuth: [] }],
+        parameters: [{ in: 'path', name: 'id', required: true, schema: { type: 'string' } }],
+        requestBody: {
+          required: true,
+          content: { 'application/json': { schema: { $ref: '#/components/schemas/BookInput' } } },
+        },
+        responses: {
+          200: { description: 'Book updated.', content: { 'application/json': { schema: { $ref: '#/components/schemas/Book' } } } },
+          401: { description: 'Unauthorized.' },
+          403: { description: 'Admin access required.' },
+        },
+      },
+    },
+    '/delete-book/{id}': {
+      delete: {
+        tags: ['Books'],
+        summary: 'Delete a book by ID (admin only)',
+        security: [{ BearerAuth: [] }],
+        parameters: [{ in: 'path', name: 'id', required: true, schema: { type: 'string' } }],
+        responses: {
+          200: { description: 'Book deleted.' },
+          401: { description: 'Unauthorized.' },
+          403: { description: 'Admin access required.' },
+        },
+      },
+    },
+
+    // ─── Authors ────────────────────────────────────────────────────────────
+    '/authors': {
+      get: {
+        tags: ['Authors'],
+        summary: 'Get all authors',
+        responses: {
+          200: { description: 'List of all authors.', content: { 'application/json': { schema: { type: 'array', items: { $ref: '#/components/schemas/Author' } } } } },
+        },
+      },
+    },
+    '/authors/{id}': {
+      get: {
+        tags: ['Authors'],
+        summary: 'Get a single author by ID',
+        parameters: [{ in: 'path', name: 'id', required: true, schema: { type: 'string' } }],
+        responses: {
+          200: { description: 'Author details.', content: { 'application/json': { schema: { $ref: '#/components/schemas/Author' } } } },
+          404: { description: 'Author not found.' },
+        },
+      },
+    },
+    '/add-authors': {
+      post: {
+        tags: ['Authors'],
+        summary: 'Add a new author (admin only)',
+        security: [{ BearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: { 'application/json': { schema: { $ref: '#/components/schemas/AuthorInput' } } },
+        },
+        responses: {
+          200: { description: 'Author added.', content: { 'application/json': { schema: { $ref: '#/components/schemas/Author' } } } },
+          401: { description: 'Unauthorized.' },
+          403: { description: 'Admin access required.' },
+        },
+      },
+    },
+    '/update-author/{id}': {
+      put: {
+        tags: ['Authors'],
+        summary: 'Update an author by ID (admin only)',
+        security: [{ BearerAuth: [] }],
+        parameters: [{ in: 'path', name: 'id', required: true, schema: { type: 'string' } }],
+        requestBody: {
+          required: true,
+          content: { 'application/json': { schema: { $ref: '#/components/schemas/AuthorInput' } } },
+        },
+        responses: {
+          200: { description: 'Author updated.', content: { 'application/json': { schema: { $ref: '#/components/schemas/Author' } } } },
+          401: { description: 'Unauthorized.' },
+          403: { description: 'Admin access required.' },
+        },
+      },
+    },
+    '/delete-author/{id}': {
+      delete: {
+        tags: ['Authors'],
+        summary: 'Delete an author by ID (admin only)',
+        security: [{ BearerAuth: [] }],
+        parameters: [{ in: 'path', name: 'id', required: true, schema: { type: 'string' } }],
+        responses: {
+          200: { description: 'Author deleted.' },
+          401: { description: 'Unauthorized.' },
+          403: { description: 'Admin access required.' },
+        },
+      },
+    },
+
+    // ─── Publishers ─────────────────────────────────────────────────────────
+    '/publishers': {
+      get: {
+        tags: ['Publishers'],
+        summary: 'Get all publishers',
+        responses: {
+          200: { description: 'List of all publishers.', content: { 'application/json': { schema: { type: 'array', items: { $ref: '#/components/schemas/Publisher' } } } } },
+        },
+      },
+    },
+    '/publishers/{id}': {
+      get: {
+        tags: ['Publishers'],
+        summary: 'Get a single publisher by ID',
+        parameters: [{ in: 'path', name: 'id', required: true, schema: { type: 'string' } }],
+        responses: {
+          200: { description: 'Publisher details.', content: { 'application/json': { schema: { $ref: '#/components/schemas/Publisher' } } } },
+          404: { description: 'Publisher not found.' },
+        },
+      },
+    },
+    '/add-publishers': {
+      post: {
+        tags: ['Publishers'],
+        summary: 'Add a new publisher (admin only)',
+        security: [{ BearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: { 'application/json': { schema: { $ref: '#/components/schemas/PublisherInput' } } },
+        },
+        responses: {
+          200: { description: 'Publisher added.', content: { 'application/json': { schema: { $ref: '#/components/schemas/Publisher' } } } },
+          401: { description: 'Unauthorized.' },
+          403: { description: 'Admin access required.' },
+        },
+      },
+    },
+    '/update-publisher/{id}': {
+      put: {
+        tags: ['Publishers'],
+        summary: 'Update a publisher by ID (admin only)',
+        security: [{ BearerAuth: [] }],
+        parameters: [{ in: 'path', name: 'id', required: true, schema: { type: 'string' } }],
+        requestBody: {
+          required: true,
+          content: { 'application/json': { schema: { $ref: '#/components/schemas/PublisherInput' } } },
+        },
+        responses: {
+          200: { description: 'Publisher updated.', content: { 'application/json': { schema: { $ref: '#/components/schemas/Publisher' } } } },
+          401: { description: 'Unauthorized.' },
+          403: { description: 'Admin access required.' },
+        },
+      },
+    },
+    '/delete-publisher/{id}': {
+      delete: {
+        tags: ['Publishers'],
+        summary: 'Delete a publisher by ID (admin only)',
+        security: [{ BearerAuth: [] }],
+        parameters: [{ in: 'path', name: 'id', required: true, schema: { type: 'string' } }],
+        responses: {
+          200: { description: 'Publisher deleted.' },
+          401: { description: 'Unauthorized.' },
+          403: { description: 'Admin access required.' },
+        },
+      },
+    },
+
+    // ─── Categories ─────────────────────────────────────────────────────────
+    '/categories': {
+      get: {
+        tags: ['Categories'],
+        summary: 'Get all categories',
+        responses: {
+          200: { description: 'List of all categories.', content: { 'application/json': { schema: { type: 'array', items: { $ref: '#/components/schemas/Category' } } } } },
+        },
+      },
+    },
+    '/names-of-categories': {
+      get: {
+        tags: ['Categories'],
+        summary: 'Get only category IDs and names',
+        responses: {
+          200: {
+            description: 'Category names.',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      _id: { type: 'string' },
+                      name: { type: 'string', example: 'Fiction' },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+
+    // ─── Orders ─────────────────────────────────────────────────────────────
+    '/place-order': {
+      post: {
+        tags: ['Orders'],
+        summary: 'Place a new order (authenticated users)',
+        security: [{ BearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['books'],
+                properties: {
+                  books: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      required: ['bookId', 'quantity'],
+                      properties: {
+                        bookId: { type: 'string', example: '64b1f2c3d4e5f6a7b8c9d0e3' },
+                        quantity: { type: 'integer', example: 2 },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          201: { description: 'Order placed.', content: { 'application/json': { schema: { $ref: '#/components/schemas/Order' } } } },
+          401: { description: 'Unauthorized.' },
+          404: { description: 'Book not found.' },
+        },
+      },
+    },
+    '/my-orders': {
+      get: {
+        tags: ['Orders'],
+        summary: "Get the logged-in user's orders",
+        security: [{ BearerAuth: [] }],
+        responses: {
+          200: { description: "User's orders.", content: { 'application/json': { schema: { type: 'array', items: { $ref: '#/components/schemas/Order' } } } } },
+          401: { description: 'Unauthorized.' },
+        },
+      },
+    },
+    '/orders': {
+      get: {
+        tags: ['Orders'],
+        summary: 'Get all orders (admin only)',
+        security: [{ BearerAuth: [] }],
+        responses: {
+          200: { description: 'All orders.', content: { 'application/json': { schema: { type: 'array', items: { $ref: '#/components/schemas/Order' } } } } },
+          401: { description: 'Unauthorized.' },
+          403: { description: 'Admin access required.' },
+        },
+      },
+    },
+    '/order-status/{id}': {
+      patch: {
+        tags: ['Orders'],
+        summary: 'Update order status (admin only)',
+        security: [{ BearerAuth: [] }],
+        parameters: [{ in: 'path', name: 'id', required: true, schema: { type: 'string' } }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['orderStatus'],
+                properties: {
+                  orderStatus: { type: 'string', enum: ['pending', 'processing', 'shipped', 'delivered', 'cancelled'] },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: { description: 'Order status updated.', content: { 'application/json': { schema: { $ref: '#/components/schemas/Order' } } } },
+          401: { description: 'Unauthorized.' },
+          403: { description: 'Admin access required.' },
+          404: { description: 'Order not found.' },
+        },
+      },
+    },
+    '/payment-status/{id}': {
+      patch: {
+        tags: ['Orders'],
+        summary: 'Update payment status (admin only)',
+        security: [{ BearerAuth: [] }],
+        parameters: [{ in: 'path', name: 'id', required: true, schema: { type: 'string' } }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['paymentStatus'],
+                properties: {
+                  paymentStatus: { type: 'string', enum: ['pending', 'paid', 'failed', 'refunded'] },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: { description: 'Payment status updated.', content: { 'application/json': { schema: { $ref: '#/components/schemas/Order' } } } },
+          401: { description: 'Unauthorized.' },
+          403: { description: 'Admin access required.' },
+          404: { description: 'Order not found.' },
+        },
+      },
+    },
+  },
+};
+
+module.exports = swaggerSpec;

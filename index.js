@@ -1,6 +1,8 @@
 const express = require('express')
 const cors = require('cors');
 require('dotenv').config();
+const swaggerUi = require('swagger-ui-express');
+const swaggerSpec = require('./swagger');
 
 const {connectMongoDB}=require('./connectDB');
 
@@ -20,7 +22,10 @@ app.use(require("./routes/authors.routes"));
 app.use(require("./routes/publishers.routes"));
 app.use(require("./routes/categories.routes"));
 app.use(require("./routes/books.routes"));
+app.use(require("./routes/orders.routes"));
 
+
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.get('/', (req, res) => {
   res.send('Hello World!')
