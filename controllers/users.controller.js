@@ -6,7 +6,11 @@ const crypto = require('crypto');
 const { OAuth2Client } = require('google-auth-library');
 const { sendVerificationEmail } = require('../utils/sendEmail');
 
-const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+const googleClient = new OAuth2Client(
+  process.env.GOOGLE_CLIENT_ID,
+  process.env.GOOGLE_CLIENT_SECRET,
+  `${process.env.SERVER_URL}/auth/google/callback`
+);
 
 const signToken = (user) =>
   jwt.sign(
@@ -121,13 +125,25 @@ exports.login = async (req, res) => {
   }
 };
 
-// Google sign-in / sign-up
-exports.googleAuth = async (req, res) => {
+// Step 1: Redirect user to Google consent screen
+exports.googleAuthRedirect = (req, res) => {
+  const url = googleClient.generateAuthUrl({
+    access_type: 'offline',
+    scope: ['openid', 'email', 'profile'],
+    prompt: 'select_account',
+  });
+  res.redirect(url);
+};
+
+// Step 2: Google redirects here with auth code — exchange it for user info
+exports.googleAuthCallback = async (req, res) => {
   try {
-    const { token } = req.body;
+    const { code } = req.query;
+
+    const { tokens } = await googleClient.getToken(code);
 
     const ticket = await googleClient.verifyIdToken({
-      idToken: token,
+      idToken: tokens.id_token,
       audience: process.env.GOOGLE_CLIENT_ID,
     });
 
@@ -144,12 +160,13 @@ exports.googleAuth = async (req, res) => {
         isVerified: true,
       });
     } else if (user.provider === 'local') {
-      return res.status(409).send({ success: false, message: 'This email is already registered with credentials. Please log in with email and password.' });
+      return res.redirect(`${process.env.CLIENT_URL}/login?error=email_exists`);
     }
 
-    res.send({ success: true, message: 'Google sign-in successful.', token: signToken(user), user: safeUser(user) });
+    const token = signToken(user);
+    res.redirect(`${process.env.CLIENT_URL}/auth/callback?token=${token}`);
   } catch (error) {
-    res.status(401).send({ success: false, message: 'Invalid Google token.' });
+    res.redirect(`${process.env.CLIENT_URL}/login?error=google_auth_failed`);
   }
 };
 
@@ -183,6 +200,21 @@ exports.getMe = async (req, res) => {
     const user = await User.findById(req.user.id, { password: 0, verificationToken: 0, verificationTokenExpiry: 0 });
     if (!user) return res.status(404).send({ message: 'User not found.' });
     res.send(user);
+  } catch (error) {
+    res.status(500).send(error);
+  }
+};
+
+// Update own profile
+exports.updateProfile = async (req, res) => {
+  try {
+    const { name, phoneNumber, address } = req.body;
+    const user = await User.findByIdAndUpdate(
+      req.user.id,
+      { name, phoneNumber, address },
+      { new: true, projection: { password: 0, verificationToken: 0, verificationTokenExpiry: 0 } }
+    );
+    res.send({ success: true, message: 'Profile updated successfully.', data: user });
   } catch (error) {
     res.status(500).send(error);
   }

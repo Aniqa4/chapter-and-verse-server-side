@@ -256,27 +256,25 @@ const swaggerSpec = {
       },
     },
     '/auth/google': {
-      post: {
+      get: {
         tags: ['Auth'],
-        summary: 'Sign in with Google',
-        requestBody: {
-          required: true,
-          content: {
-            'application/json': {
-              schema: {
-                type: 'object',
-                required: ['token'],
-                properties: {
-                  token: { type: 'string', description: 'Google ID token from the frontend OAuth flow', example: 'eyJhbGci...' },
-                },
-              },
-            },
-          },
-        },
+        summary: 'Initiate Google OAuth — redirects to Google consent screen',
+        description: 'Open this URL in the browser. The user selects their Google account and is redirected back to the callback.',
         responses: {
-          200: { description: 'Google sign-in successful.', content: { 'application/json': { schema: { $ref: '#/components/schemas/AuthResponse' } } } },
-          401: { description: 'Invalid Google token.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
-          409: { description: 'Email already registered with credentials.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+          302: { description: 'Redirects to Google OAuth consent screen.' },
+        },
+      },
+    },
+    '/auth/google/callback': {
+      get: {
+        tags: ['Auth'],
+        summary: 'Google OAuth callback (handled by backend)',
+        description: 'Google redirects here after the user authenticates. The backend exchanges the code, creates or finds the user, then redirects the browser to `CLIENT_URL/auth/callback?token=JWT`.',
+        parameters: [
+          { in: 'query', name: 'code', required: true, schema: { type: 'string' }, description: 'Authorization code from Google' },
+        ],
+        responses: {
+          302: { description: 'Redirects to frontend with `?token=JWT` on success, or `?error=...` on failure.' },
         },
       },
     },
@@ -325,6 +323,35 @@ const swaggerSpec = {
           200: { description: 'List of all users.', content: { 'application/json': { schema: { type: 'array', items: { $ref: '#/components/schemas/User' } } } } },
           401: { description: 'Unauthorized.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
           403: { description: 'Admin access required.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+        },
+      },
+    },
+    '/update-profile': {
+      patch: {
+        tags: ['Users'],
+        summary: 'Update own profile',
+        security: [{ BearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  name: { type: 'string', example: 'Aniqa Rahman' },
+                  phoneNumber: { type: 'string', example: '01700000000' },
+                  address: { type: 'string', example: 'Dhaka' },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'Profile updated successfully.',
+            content: { 'application/json': { schema: { type: 'object', properties: { success: { type: 'boolean', example: true }, message: { type: 'string', example: 'Profile updated successfully.' }, data: { $ref: '#/components/schemas/User' } } } } },
+          },
+          401: { description: 'Unauthorized.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
         },
       },
     },
