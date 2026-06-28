@@ -214,10 +214,27 @@ exports.logout = async (req, res) => {
   }
 };
 
-// Silent login — verify stored token and return a fresh one
+// Silent login — verify stored token (ignoring expiry) and return a fresh one
 exports.refreshToken = async (req, res) => {
   try {
-    const user = await User.findById(req.user.id, { password: 0, verificationToken: 0, verificationTokenExpiry: 0 });
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).send({ success: false, message: 'No token provided.' });
+    }
+
+    const token = authHeader.split(' ')[1];
+
+    const blacklisted = await BlacklistedToken.findOne({ token });
+    if (blacklisted) return res.status(401).send({ success: false, message: 'Token has been invalidated. Please log in again.' });
+
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET, { ignoreExpiration: true });
+    } catch {
+      return res.status(401).send({ success: false, message: 'Invalid token.' });
+    }
+
+    const user = await User.findById(decoded.id, { password: 0, verificationToken: 0, verificationTokenExpiry: 0 });
     if (!user) return res.status(404).send({ success: false, message: 'User not found.' });
 
     res.send({ success: true, message: 'Token refreshed.', token: signToken(user), user: safeUser(user) });

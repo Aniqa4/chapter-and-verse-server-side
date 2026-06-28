@@ -14,7 +14,7 @@ router.get("/auth/google/callback", controller.googleAuthCallback);
 router.get("/verify-email/:token", controller.verifyEmail);
 
 router.post("/logout", auth, controller.logout);
-router.post("/refresh-token", auth, controller.refreshToken);
+router.post("/refresh-token", controller.refreshToken);
 router.get("/me", auth, controller.getMe);
 router.patch("/update-profile", auth, controller.updateProfile);
 router.get("/users", auth, adminOnly, controller.getUsers);
