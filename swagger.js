@@ -759,6 +759,84 @@ const swaggerSpec = {
         },
       },
     },
+    '/add-categories': {
+      post: {
+        tags: ['Categories'],
+        summary: 'Add a new category (admin only)',
+        security: [{ BearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            'multipart/form-data': {
+              schema: {
+                type: 'object',
+                required: ['name', 'description'],
+                properties: {
+                  image: { type: 'string', format: 'binary', description: 'Category image file' },
+                  name: { type: 'string', example: 'Fiction' },
+                  description: { type: 'string', example: 'Fictional story books.' },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          201: {
+            description: 'Category added successfully.',
+            content: { 'application/json': { schema: { type: 'object', properties: { success: { type: 'boolean', example: true }, message: { type: 'string', example: 'Category added successfully.' }, data: { $ref: '#/components/schemas/Category' } } } } },
+          },
+          401: { description: 'Unauthorized.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+          403: { description: 'Admin access required.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+          409: { description: 'Category already exists.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+        },
+      },
+    },
+    '/update-category/{id}': {
+      put: {
+        tags: ['Categories'],
+        summary: 'Update a category by ID (admin only)',
+        security: [{ BearerAuth: [] }],
+        parameters: [{ in: 'path', name: 'id', required: true, schema: { type: 'string' } }],
+        requestBody: {
+          required: true,
+          content: {
+            'multipart/form-data': {
+              schema: {
+                type: 'object',
+                properties: {
+                  image: { type: 'string', format: 'binary', description: 'New category image (optional)' },
+                  name: { type: 'string', example: 'Fiction' },
+                  description: { type: 'string', example: 'Fictional story books.' },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'Category updated successfully.',
+            content: { 'application/json': { schema: { type: 'object', properties: { success: { type: 'boolean', example: true }, message: { type: 'string', example: 'Category updated successfully.' }, data: { $ref: '#/components/schemas/Category' } } } } },
+          },
+          401: { description: 'Unauthorized.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+          403: { description: 'Admin access required.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+          404: { description: 'Category not found.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+        },
+      },
+    },
+    '/delete-category/{id}': {
+      delete: {
+        tags: ['Categories'],
+        summary: 'Delete a category by ID (admin only)',
+        security: [{ BearerAuth: [] }],
+        parameters: [{ in: 'path', name: 'id', required: true, schema: { type: 'string' } }],
+        responses: {
+          200: { description: 'Category deleted successfully.', content: { 'application/json': { schema: { $ref: '#/components/schemas/SuccessMessage' } } } },
+          401: { description: 'Unauthorized.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+          403: { description: 'Admin access required.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+          404: { description: 'Category not found.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+        },
+      },
+    },
 
     // ─── Orders ────────────────────────────────────────────────────────────────
     '/place-order': {
