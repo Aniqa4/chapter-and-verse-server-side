@@ -26,7 +26,7 @@ exports.addCategory = async (req, res) => {
     const { name, image, description } = req.body;
     const existing = await Category.findOne({ name });
     if (existing) return res.status(409).send({ success: false, message: 'Category already exists.' });
-    const result = await Category.create({ name, image, desciption: description });
+    const result = await Category.create({ name, image, description });
     res.status(201).send({ success: true, message: 'Category added successfully.', data: result });
   } catch (error) {
     res.status(500).send(error);
@@ -39,7 +39,7 @@ exports.updateCategory = async (req, res) => {
     const { name, image, description } = req.body;
     const result = await Category.findByIdAndUpdate(
       req.params.id,
-      { name, image, desciption: description },
+      { name, image, description },
       { new: true }
     );
     if (!result) return res.status(404).send({ success: false, message: 'Category not found.' });

@@ -83,17 +83,17 @@ const swaggerSpec = {
           name: { type: 'string', example: 'Paulo Coelho' },
           email: { type: 'string', example: 'paulo@example.com' },
           phone: { type: 'string', example: '01800000000' },
-          desciption: { type: 'string', example: 'Brazilian author known for The Alchemist.' },
+          description: { type: 'string', example: 'Brazilian author known for The Alchemist.' },
         },
       },
       AuthorInput: {
         type: 'object',
-        required: ['name', 'email', 'phone', 'desciption'],
+        required: ['name', 'email', 'phone', 'description'],
         properties: {
           name: { type: 'string', example: 'Paulo Coelho' },
           email: { type: 'string', example: 'paulo@example.com' },
           phone: { type: 'string', example: '01800000000' },
-          desciption: { type: 'string', example: 'Brazilian author known for The Alchemist.' },
+          description: { type: 'string', example: 'Brazilian author known for The Alchemist.' },
         },
       },
       Publisher: {
@@ -103,17 +103,17 @@ const swaggerSpec = {
           name: { type: 'string', example: 'HarperCollins' },
           email: { type: 'string', example: 'contact@harpercollins.com' },
           phone: { type: 'string', example: '01900000000' },
-          desciption: { type: 'string', example: 'One of the largest publishing companies.' },
+          description: { type: 'string', example: 'One of the largest publishing companies.' },
         },
       },
       PublisherInput: {
         type: 'object',
-        required: ['name', 'email', 'phone', 'desciption'],
+        required: ['name', 'description'],
         properties: {
           name: { type: 'string', example: 'HarperCollins' },
           email: { type: 'string', example: 'contact@harpercollins.com' },
           phone: { type: 'string', example: '01900000000' },
-          desciption: { type: 'string', example: 'One of the largest publishing companies.' },
+          description: { type: 'string', example: 'One of the largest publishing companies.' },
         },
       },
       Category: {
@@ -122,7 +122,7 @@ const swaggerSpec = {
           _id: { type: 'string', example: '64b1f2c3d4e5f6a7b8c9d0e1' },
           name: { type: 'string', example: 'Fiction' },
           image: { type: 'string', example: 'https://example.com/fiction.jpg' },
-          desciption: { type: 'string', example: 'Fictional story books.' },
+          description: { type: 'string', example: 'Fictional story books.' },
         },
       },
       Order: {
