@@ -88,7 +88,7 @@ const swaggerSpec = {
       },
       AuthorInput: {
         type: 'object',
-        required: ['name', 'email', 'phone', 'description'],
+        required: ['name', 'description'],
         properties: {
           name: { type: 'string', example: 'Paulo Coelho' },
           email: { type: 'string', example: 'paulo@example.com' },
