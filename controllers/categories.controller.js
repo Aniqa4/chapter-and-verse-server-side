@@ -32,3 +32,30 @@ exports.addCategory = async (req, res) => {
     res.status(500).send(error);
   }
 };
+
+// Update category
+exports.updateCategory = async (req, res) => {
+  try {
+    const { name, image, description } = req.body;
+    const result = await Category.findByIdAndUpdate(
+      req.params.id,
+      { name, image, desciption: description },
+      { new: true }
+    );
+    if (!result) return res.status(404).send({ success: false, message: 'Category not found.' });
+    res.send({ success: true, message: 'Category updated successfully.', data: result });
+  } catch (error) {
+    res.status(500).send(error);
+  }
+};
+
+// Delete category
+exports.deleteCategory = async (req, res) => {
+  try {
+    const result = await Category.findByIdAndDelete(req.params.id);
+    if (!result) return res.status(404).send({ success: false, message: 'Category not found.' });
+    res.send({ success: true, message: 'Category deleted successfully.' });
+  } catch (error) {
+    res.status(500).send(error);
+  }
+};
